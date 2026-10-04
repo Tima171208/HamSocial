@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HamSocial — Мессенджер и Сообщества</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        dark: {
+                            bg: '#0b0f19',
+                            sidebar: '#111827',
+                            panel: '#1f2937',
+                            card: '#374151',
+                            hover: '#4b5563'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome & Lucide Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Scrollbar & Utility Styles -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+
+        /* Pulse animation for active call avatar */
+        @keyframes ring-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6); }
+            70% { box-shadow: 0 0 0 20px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+        .call-pulse {
+            animation: ring-pulse 2s infinite;
+        }
+        
+        .chat-text-select {
+            user-select: text;
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-gray-100 h-screen overflow-hidden flex flex-col antialiased">
+
+    <!-- Top System Header (Minimal) -->
+    <header class="h-10 bg-slate-950 border-b border-gray-800 flex items-center justify-between px-4 text-xs select-none">
+        <div class="flex items-center space-x-2">
+            <span class="w-3 h-3 rounded-full bg-red-500 inline-block hover:opacity-80 cursor-pointer"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500 inline-block hover:opacity-80 cursor-pointer"></span>
+            <span class="w-3 h-3 rounded-full bg-green-500 inline-block hover:opacity-80 cursor-pointer"></span>
+            <span class="ml-3 font-semibold text-gray-300 flex items-center gap-1.5">
+                <i class="fa-solid font-bold fa-shield-cat text-indigo-400"></i> HamSocial Desktop v2.4
+            </span>
+        </div>
+        <div class="flex items-center space-x-4 text-gray-400">
+            <span id="connectionStatus" class="flex items-center gap-1.5 text-emerald-400 font-medium">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Подключено
+            </span>
+            <button onclick="toggleCallModal(true)" class="hover:text-indigo-400 transition" title="Быстрый звонок">
+                <i class="fa-solid fa-headset"></i>
+            </button>
+            <button onclick="toggleSettingsModal(true)" class="hover:text-indigo-400 transition" title="Настройки">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- 1. LEFTMOST RAIL (Hubs & DMs) -->
+        <div class="w-18 md:w-20 bg-slate-950 flex flex-col items-center py-3 border-r border-gray-800 space-y-3 z-20 shrink-0">
+            <!-- App Logo -->
+            <button onclick="switchView('dm')" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-500/20 hover:rounded-xl transition-all duration-200 group relative">
+                <i class="fa-solid fa-shield-cat group-hover:scale-110 transition duration-200"></i>
+                <span class="absolute left-16 bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-150 z-50 pointer-events-none shadow-md border border-gray-700">
+                    ЛС и Диалоги
+                </span>
+            </button>
+
+            <div class="w-8 h-[2px] bg-gray-800 rounded-full my-1"></div>
+
+            <!-- Server Icons List -->
+            <div id="serverList" class="flex-1 w-full flex flex-col items-center space-y-3 overflow-y-auto px-2">
+                <!-- Servers render dynamically via JS -->
+            </div>
+
+            <!-- Add Server Button -->
+            <button onclick="openNewServerModal()" class="w-12 h-12 rounded-3xl bg-gray-800 text-emerald-400 hover:bg-emerald-600 hover:text-white flex items-center justify-center text-lg transition-all duration-200 group relative shadow-inner">
+                <i class="fa-solid fa-plus"></i>
+                <span class="absolute left-16 bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-150 z-50 pointer-events-none shadow-md border border-gray-700">
+                    Создать Сервер
+                </span>
+            </button>
+
+            <!-- User Status Pill -->
+            <div class="pt-2">
+                <div onclick="toggleStatusDropdown()" class="relative cursor-pointer group">
+                    <img id="userAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" alt="Avatar" class="w-10 h-10 rounded-xl object-cover ring-2 ring-indigo-500/50">
+                    <span id="userStatusIndicator" class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-slate-950"></span>
+                    
+                    <!-- Status Dropdown -->
+                    <div id="statusDropdown" class="hidden absolute bottom-12 left-2 w-48 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-2 z-50 space-y-1">
+                        <div onclick="setUserStatus('online', 'В сети', 'bg-emerald-500')" class="flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg hover:bg-gray-800 text-gray-200 cursor-pointer">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> В сети
+                        </div>
+                        <div onclick="setUserStatus('idle', 'Не активен', 'bg-amber-500')" class="flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg hover:bg-gray-800 text-gray-200 cursor-pointer">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Не активен
+                        </div>
+                        <div onclick="setUserStatus('dnd', 'Не беспокоить', 'bg-red-500')" class="flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg hover:bg-gray-800 text-gray-200 cursor-pointer">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Не беспокоить
+                        </div>
+                        <div onclick="setUserStatus('invisible', 'Невидимка', 'bg-gray-400')" class="flex items-center gap-2.5 px-3 py-2 text-xs rounded-lg hover:bg-gray-800 text-gray-200 cursor-pointer">
+                            <span class="w-2.5 h-2.5 rounded-full bg-gray-400"></span> Невидимка
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. MIDDLE PANEL (Channels / Chat list) -->
+        <div class="w-64 md:w-72 bg-dark-sidebar flex flex-col border-r border-gray-800 shrink-0">
+            <!-- Sidebar Top Header -->
+            <div class="h-14 px-4 border-b border-gray-800 flex items-center justify-between shadow-sm">
+                <h1 id="middlePanelTitle" class="font-bold text-gray-100 truncate flex items-center gap-2">
+                    <!-- Dynamic Title -->
+                </h1>
+                <button onclick="toggleMiddlePanelSearch()" class="text-gray-400 hover:text-white transition">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Quick Search Input (Search Messages / Chats) -->
+            <div id="middleSearchContainer" class="p-3 border-b border-gray-800/60 hidden">
+                <div class="relative">
+                    <input type="text" id="middleSearchInput" onkeyup="filterMiddleList()" placeholder="Поиск каналов и чатов..." class="w-full bg-gray-900 text-xs text-gray-200 placeholder-gray-500 rounded-lg pl-8 pr-3 py-2 border border-gray-700/60 focus:outline-none focus:border-indigo-500">
+                    <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-xs text-gray-500"></i>
+                </div>
+            </div>
+
+            <!-- List Content (Direct Messages or Channels) -->
+            <div id="middleList" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- User Info Bar at Bottom of Middle Panel -->
+            <div class="p-3 bg-slate-950/60 border-t border-gray-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5 min-w-0">
+                    <img id="myAvatarMini" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" class="w-8 h-8 rounded-lg object-cover">
+                    <div class="min-w-0">
+                        <div id="myUsername" class="text-xs font-semibold text-gray-200 truncate">Алексей Романов</div>
+                        <div id="myUserTag" class="text-[10px] text-gray-400 truncate">@ham_master</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-1 text-gray-400">
+                    <button onclick="toggleMuteMic(this)" class="p-1.5 hover:bg-gray-800 rounded-lg transition" title="Микрофон">
+                        <i class="fa-solid fa-microphone text-xs"></i>
+                    </button>
+                    <button onclick="toggleSettingsModal(true)" class="p-1.5 hover:bg-gray-800 rounded-lg transition" title="Настройки">
+                        <i class="fa-solid fa-gear text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. MAIN CONTENT PANEL (Active Chat / Channel) -->
+        <div class="flex-1 bg-dark-bg flex flex-col min-w-0 h-full relative">
+            
+            <!-- Chat Header Bar -->
+            <div class="h-14 bg-dark-sidebar/80 backdrop-blur-md border-b border-gray-800 px-4 flex items-center justify-between z-10">
+                <div class="flex items-center space-x-3 min-w-0">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div id="activeChatIcon" class="text-indigo-400 font-bold text-lg">
+                        #
+                    </div>
+                    <div class="min-w-0">
+                        <h2 id="activeChatTitle" class="text-sm font-bold text-gray-100 truncate">
+                            общий-чат
+                        </h2>
+                        <p id="activeChatSubtitle" class="text-[11px] text-gray-400 truncate">
+                            Главный канал для обсуждений сообщества
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center space-x-2 md:space-x-3 text-gray-400">
+                    <button onclick="startVoiceCall()" class="p-2 hover:bg-gray-800 hover:text-indigo-400 rounded-lg transition" title="Аудиозвонок">
+                        <i class="fa-solid fa-phone"></i>
+                    </button>
+                    <button onclick="startVideoCall()" class="p-2 hover:bg-gray-800 hover:text-indigo-400 rounded-lg transition" title="Видеозвонок">
+                        <i class="fa-solid fa-video"></i>
+                    </button>
+                    <button onclick="togglePinnedBar()" class="p-2 hover:bg-gray-800 hover:text-amber-400 rounded-lg transition" title="Закрепленные сообщения">
+                        <i class="fa-solid fa-thumbtack"></i>
+                    </button>
+                    <button onclick="toggleRightPanel()" class="p-2 hover:bg-gray-800 hover:text-indigo-400 rounded-lg transition" title="Информация и участники">
+                        <i class="fa-solid fa-users"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pinned Banner (Toggleable) -->
+            <div id="pinnedBanner" class="bg-indigo-950/40 border-b border-indigo-900/50 px-4 py-2 flex items-center justify-between text-xs text-indigo-200 hidden">
+                <div class="flex items-center space-x-2 truncate">
+                    <i class="fa-solid fa-thumbtack text-amber-400"></i>
+                    <span class="font-semibold">Закрепленное:</span>
+                    <span id="pinnedMessageText" class="truncate opacity-90">Добро пожаловать в мессенджер HamSocial v2.4! Соблюдайте правила общения.</span>
+                </div>
+                <button onclick="togglePinnedBar()" class="text-indigo-300 hover:text-white ml-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Chat Messages Container -->
+            <div id="chatFeed" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Messages render dynamically via JS -->
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typingIndicator" class="px-4 py-1 text-[11px] text-gray-400 italic h-5 flex items-center gap-1.5 opacity-0 transition-opacity">
+                <i class="fa-solid fa-ellipsis fa-bounce text-indigo-400"></i>
+                <span id="typingUserText">Кто-то печатает...</span>
+            </div>
+
+            <!-- Message Input Area -->
+            <div class="p-3 md:p-4 bg-dark-sidebar border-t border-gray-800">
+                <!-- Input Controls Box -->
+                <div class="bg-gray-900 rounded-xl border border-gray-700/80 p-2 flex flex-col space-y-2 focus-within:border-indigo-500 transition shadow-inner">
+                    
+                    <!-- File attachment preview indicator if any -->
+                    <div id="attachmentPreview" class="hidden px-2 py-1 bg-gray-800 rounded-lg text-xs text-gray-300 flex items-center justify-between">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fa-solid fa-paperclip text-indigo-400"></i>
+                            <span id="attachmentFileName">file.png</span>
+                        </span>
+                        <button onclick="clearAttachment()" class="text-gray-400 hover:text-red-400">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Input Area Row -->
+                    <div class="flex items-center space-x-2">
+                        <!-- Upload File Button -->
+                        <label class="p-2 text-gray-400 hover:text-indigo-400 cursor-pointer transition rounded-lg hover:bg-gray-800">
+                            <i class="fa-solid fa-circle-plus text-base"></i>
+                            <input type="file" id="fileUploadInput" onchange="handleFileUpload(event)" class="hidden">
+                        </label>
+
+                        <!-- Text Area -->
+                        <textarea id="messageInput" onkeydown="handleInputKeydown(event)" rows="1" placeholder="Написать сообщение в #общий-чат..." class="flex-1 bg-transparent text-sm text-gray-100 placeholder-gray-500 focus:outline-none resize-none max-h-32 chat-text-select"></textarea>
+
+                        <!-- Emoji Picker Toggle -->
+                        <div class="relative">
+                            <button onclick="toggleEmojiPicker()" class="p-2 text-gray-400 hover:text-yellow-400 transition rounded-lg hover:bg-gray-800">
+                                <i class="fa-regular fa-face-smile text-lg"></i>
+                            </button>
+                            <!-- Simple Emoji Popover -->
+                            <div id="emojiPicker" class="hidden absolute right-0 bottom-12 bg-gray-900 border border-gray-700 p-2 rounded-xl shadow-2xl grid grid-cols-6 gap-2 text-xl z-50">
+                                <span onclick="insertEmoji('👍')" class="cursor-pointer hover:scale-125 transition">👍</span>
+                                <span onclick="insertEmoji('❤️️')" class="cursor-pointer hover:scale-125 transition">❤️</span>
+                                <span onclick="insertEmoji('🔥')" class="cursor-pointer hover:scale-125 transition">🔥</span>
+                                <span onclick="insertEmoji('😂')" class="cursor-pointer hover:scale-125 transition">😂</span>
+                                <span onclick="insertEmoji('🎉')" class="cursor-pointer hover:scale-125 transition">🎉</span>
+                                <span onclick="insertEmoji('🚀')" class="cursor-pointer hover:scale-125 transition">🚀</span>
+                                <span onclick="insertEmoji('😎')" class="cursor-pointer hover:scale-125 transition">😎</span>
+                                <span onclick="insertEmoji('🙌')" class="cursor-pointer hover:scale-125 transition">🙌</span>
+                                <span onclick="insertEmoji('💯')" class="cursor-pointer hover:scale-125 transition">💯</span>
+                                <span onclick="insertEmoji('🤝')" class="cursor-pointer hover:scale-125 transition">🤝</span>
+                                <span onclick="insertEmoji('⚡')" class="cursor-pointer hover:scale-125 transition">⚡</span>
+                                <span onclick="insertEmoji('🐹')" class="cursor-pointer hover:scale-125 transition">🐹</span>
+                            </div>
+                        </div>
+
+                        <!-- Voice Record Button (Mock) -->
+                        <button id="voiceRecordBtn" onclick="toggleVoiceRecordMock()" class="p-2 text-gray-400 hover:text-red-400 transition rounded-lg hover:bg-gray-800">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+
+                        <!-- Send Button -->
+                        <button onclick="sendMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30">
+                            <span>Отправить</span>
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. RIGHT PANEL (Server info & Active members) -->
+        <div id="rightPanel" class="w-60 bg-dark-sidebar border-l border-gray-800 flex flex-col shrink-0 transition-all duration-300">
+            <!-- Header -->
+            <div class="h-14 px-4 border-b border-gray-800 flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Участники</span>
+                <span id="onlineCountBadge" class="bg-indigo-900/60 text-indigo-300 text-[10px] px-2 py-0.5 rounded-full border border-indigo-700/50">
+                    4 В сети
+                </span>
+            </div>
+
+            <!-- Members List Grouped by Roles -->
+            <div class="flex-1 overflow-y-auto p-3 space-y-4">
+                
+                <!-- Admins Group -->
+                <div>
+                    <div class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <i class="fa-solid fa-crown text-amber-400"></i> Администраторы — 1
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-800/60 cursor-pointer transition">
+                            <div class="relative">
+                                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" class="w-8 h-8 rounded-lg object-cover">
+                                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-dark-sidebar"></span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-medium text-gray-200 truncate">Алексей (Вы)</div>
+                                <div class="text-[10px] text-gray-500 truncate">Создатель HamSocial</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bots & Mods Group -->
+                <div>
+                    <div class="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <i class="fa-solid fa-robot"></i> Боты и Модераторы — 2
+                    </div>
+                    <div class="space-y-1">
+                        <div onclick="openDirectChatWith('HamBot', 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&q=80')" class="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-800/60 cursor-pointer transition">
+                            <div class="relative">
+                                <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&q=80" class="w-8 h-8 rounded-lg object-cover">
+                                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-dark-sidebar"></span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-medium text-indigo-300 truncate flex items-center gap-1">
+                                    HamBot <span class="bg-indigo-600 text-white text-[9px] px-1 rounded">BOT</span>
+                                </div>
+                                <div class="text-[10px] text-gray-500 truncate">Помощник сервера</div>
+                            </div>
+                        </div>
+
+                        <div onclick="openDirectChatWith('Мария Петрова', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80')" class="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-800/60 cursor-pointer transition">
+                            <div class="relative">
+                                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" class="w-8 h-8 rounded-lg object-cover">
+                                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-dark-sidebar"></span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-medium text-gray-200 truncate">Мария Петрова</div>
+                                <div class="text-[10px] text-gray-500 truncate">Главный Модератор</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Online Users -->
+                <div>
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                        В сети — 1
+                    </div>
+                    <div class="space-y-1">
+                        <div onclick="openDirectChatWith('Дмитрий Ивано', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80')" class="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-800/60 cursor-pointer transition">
+                            <div class="relative">
+                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" class="w-8 h-8 rounded-lg object-cover">
+                                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-dark-sidebar"></span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-medium text-gray-200 truncate">Дмитрий Иванов</div>
+                                <div class="text-[10px] text-gray-500 truncate">Слушает музыку</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- OVERLAY MODAL: Audio/Video Call Modal Simulation -->
+    <div id="callModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-md flex flex-col items-center text-center shadow-2xl relative">
+            
+            <div class="absolute top-4 right-4 text-xs bg-indigo-900/40 text-indigo-300 px-2.5 py-1 rounded-full border border-indigo-700/40">
+                <i class="fa-solid fa-lock text-[10px] mr-1"></i> E2E Шифрование
+            </div>
+
+            <div class="my-6 relative">
+                <img id="callModalAvatar" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80" class="w-24 h-24 rounded-full object-cover call-pulse ring-4 ring-indigo-500">
+            </div>
+
+            <h3 id="callModalName" class="text-lg font-bold text-white">HamBot</h3>
+            <p id="callModalStatus" class="text-xs text-indigo-400 font-medium mt-1">Звонок... 00:14</p>
+
+            <!-- Call Controls -->
+            <div class="flex items-center space-x-4 mt-8">
+                <button onclick="toggleCallMute(this)" class="w-12 h-12 rounded-full bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+                <button onclick="toggleCallVideo(this)" class="w-12 h-12 rounded-full bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-video"></i>
+                </button>
+                <button onclick="toggleCallModal(false)" class="w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg shadow-red-600/30 transition transform hover:scale-105">
+                    <i class="fa-solid fa-phone-slash text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY MODAL: Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
+            <button onclick="toggleSettingsModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            
+            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-indigo-400"></i> Настройки профиля HamSocial
+            </h2>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-400 mb-1">Отображаемое имя</label>
+                    <input type="text" id="settingsNameInput" value="Алексей Романов" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-gray-400 mb-1">Никнейм (@tag)</label>
+                    <input type="text" id="settingsTagInput" value="@ham_master" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-gray-400 mb-1">URL Аватарки</label>
+                    <input type="text" id="settingsAvatarInput" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-gray-400 mb-1">Тематический акцент</label>
+                    <div class="flex space-x-3">
+                        <button onclick="changeAccentColor('#6366f1')" class="w-8 h-8 rounded-full bg-indigo-500 ring-2 ring-white/20"></button>
+                        <button onclick="changeAccentColor('#10b981')" class="w-8 h-8 rounded-full bg-emerald-500 ring-2 ring-white/20"></button>
+                        <button onclick="changeAccentColor('#ec4899')" class="w-8 h-8 rounded-full bg-pink-500 ring-2 ring-white/20"></button>
+                        <button onclick="changeAccentColor('#f59e0b')" class="w-8 h-8 rounded-full bg-amber-500 ring-2 ring-white/20"></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="toggleSettingsModal(false)" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 text-xs">Отмена</button>
+                <button onclick="saveSettings()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY MODAL: Create New Server Modal -->
+    <div id="newServerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+            <button onclick="closeNewServerModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h2 class="text-lg font-bold text-white mb-2">Создать новый Сервер</h2>
+            <p class="text-xs text-gray-400 mb-4">Ваш сервер — это место для общения с друзьями и сообществом.</p>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-gray-400 mb-1">Название сервера</label>
+                    <input type="text" id="newServerName" placeholder="например, 🎮 Игровой Клуб" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Иконка (Эмодзи)</label>
+                    <input type="text" id="newServerIcon" placeholder="🚀" value="🚀" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeNewServerModal()" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 text-xs">Отмена</button>
+                <button onclick="createCustomServer()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE JS LOGIC -->
+    <script>
+        /* State & LocalStorage Management */
+        const DEFAULT_SERVERS = [
+            {
+                id: 'srv-general',
+                name: 'Общий Хаб HamSocial',
+                icon: '🐹',
+                channels: [
+                    { id: 'ch-gen-1', name: 'общий-чат', type: 'text', desc: 'Главный канал для всех участников' },
+                    { id: 'ch-gen-2', name: 'новости-и-релизы', type: 'text', desc: 'Обновления и анонсы платформы' },
+                    { id: 'ch-gen-3', name: 'мемы-и-юмор', type: 'text', desc: 'Делимся смешными картинками' },
+                    { id: 'ch-voice-1', name: '🔊 Голосовой Комната #1', type: 'voice', desc: 'Открытый голосовой канал' }
+                ]
+            },
+            {
+                id: 'srv-dev',
+                name: 'IT & Разработка',
+                icon: '💻',
+                channels: [
+                    { id: 'ch-dev-1', name: 'код-и-вопросы', type: 'text', desc: 'Обсуждение кодинга и веб-разработки' },
+                    { id: 'ch-dev-2', name: 'дизайн-ui-ux', type: 'text', desc: 'Интерфейсы, CSS и фигма' }
+                ]
+            },
+            {
+                id: 'srv-gaming',
+                name: 'Игровой Клуб',
+                icon: '🎮',
+                channels: [
+                    { id: 'ch-game-1', name: 'поиск-пати', type: 'text', desc: 'Собираем команду для игры' },
+                    { id: 'ch-game-2', name: 'скриншоты', type: 'text', desc: 'Хвастаемся победами' }
+                ]
+            }
+        ];
+
+        const DIRECT_MESSAGES = [
+            {
+                id: 'dm-bot',
+                name: 'HamBot',
+                avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&q=80',
+                status: 'online',
+                badge: 'BOT',
+                lastMsg: 'Привет! Я виртуальный ассистент HamSocial. Напиши мне что-нибудь!'
+            },
+            {
+                id: 'dm-maria',
+                name: 'Мария Петрова',
+                avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
+                status: 'online',
+                badge: '',
+                lastMsg: 'Отличный дизайн у нового мессенджера!'
+            },
+            {
+                id: 'dm-dmitry',
+                name: 'Дмитрий Иванов',
+                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+                status: 'idle',
+                badge: '',
+                lastMsg: 'Жду обновления аудиозвонков...'
+            }
+        ];
+
+        // Seeded Initial Chat Messages
+        const INITIAL_MESSAGES = {
+            'ch-gen-1': [
+                {
+                    id: 'm1',
+                    sender: 'HamBot',
+                    avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&q=80',
+                    text: 'Добро пожаловать в мессенджер HamSocial! 🚀 Это современная платформа, объединяющая возможности Telegram и Discord.',
+                    time: '14:20',
+                    isBot: true,
+                    reactions: { '❤️': 3, '🚀': 5 }
+                },
+                {
+                    id: 'm2',
+                    sender: 'Мария Петрова',
+                    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
+                    text: 'Всем привет! Очень удобный интерфейс, темная тема выглядит здорово. 🔥',
+                    time: '14:22',
+                    reactions: { '👍': 2 }
+                }
+            ],
+            'dm-bot': [
+                {
+                    id: 'mb1',
+                    sender: 'HamBot',
+                    avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&q=80',
+                    text: 'Привет! Вы находитесь в личном чате с ИИ-помощником HamBot. Задайте мне любой вопрос!',
+                    time: '14:00',
+                    isBot: true,
+                    reactions: {}
+                }
+            ]
+        };
+
+        // App Active States
+        let currentMode = 'server'; // 'server' or 'dm'
+        let currentServerId = 'srv-general';
+        let currentChannelId = 'ch-gen-1';
+        let servers = JSON.parse(localStorage.getItem('hamsocial_servers')) || DEFAULT_SERVERS;
+        let messages = JSON.parse(localStorage.getItem('hamsocial_messages')) || INITIAL_MESSAGES;
+        let selectedAttachment = null;
+        let callTimerInterval = null;
+
+        // User Data
+        let currentUser = JSON.parse(localStorage.getItem('hamsocial_user')) || {
+            name: 'Алексей Романов',
+            tag: '@ham_master',
+            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+            status: 'online'
+        };
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderServerRail();
+            renderMiddlePanel();
+            renderChatFeed();
+            updateUserProfileUI();
+        });
+
+        // 1. Render Left Server Rail
+        function renderServerRail() {
+            const rail = document.getElementById('serverList');
+            rail.innerHTML = '';
+
+            servers.forEach(srv => {
+                const isActive = (currentMode === 'server' && currentServerId === srv.id);
+                const btn = document.createElement('button');
+                btn.onclick = () => selectServer(srv.id);
+                btn.className = `w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition-all duration-200 group relative ${
+                    isActive 
+                    ? 'bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-600/40 ring-2 ring-indigo-400' 
+                    : 'bg-dark-panel hover:bg-indigo-600/80 text-gray-200 hover:rounded-xl'
+                }`;
+                btn.innerHTML = `
+                    <span>${srv.icon}</span>
+                    <span class="absolute left-16 bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition duration-150 z-50 pointer-events-none shadow-md border border-gray-700">
+                        ${srv.name}
+                    </span>
+                `;
+                rail.appendChild(btn);
+            });
+        }
+
+        // 2. Select Server or DM Mode
+        function selectServer(serverId) {
+            currentMode = 'server';
+            currentServerId = serverId;
+            const targetServer = servers.find(s => s.id === serverId);
+            if (targetServer && targetServer.channels.length > 0) {
+                currentChannelId = targetServer.channels[0].id;
+            }
+            renderServerRail();
+            renderMiddlePanel();
+            renderChatFeed();
+        }
+
+        function switchView(mode) {
+            currentMode = mode;
+            if (mode === 'dm') {
+                currentChannelId = 'dm-bot';
+            }
+            renderServerRail();
+            renderMiddlePanel();
+            renderChatFeed();
+        }
+
+        // 3. Render Middle Panel (Channels list or DM list)
+        function renderMiddlePanel() {
+            const titleEl = document.getElementById('middlePanelTitle');
+            const listEl = document.getElementById('middleList');
+            listEl.innerHTML = '';
+
+            if (currentMode === 'server') {
+                const activeServer = servers.find(s => s.id === currentServerId);
+                titleEl.innerHTML = `<span class="text-indigo-400">${activeServer.icon}</span> ${activeServer.name}`;
+
+                activeServer.channels.forEach(ch => {
+                    const isActive = currentChannelId === ch.id;
+                    const item = document.createElement('div');
+                    item.onclick = () => selectChannel(ch.id);
+                    item.className = `flex items-center px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition ${
+                        isActive ? 'bg-indigo-600/20 text-indigo-300 font-semibold border-l-2 border-indigo-500' : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
+                    }`;
+                    item.innerHTML = `
+                        <span class="mr-2 text-sm">${ch.type === 'voice' ? '🔊' : '#'}</span>
+                        <span class="truncate">${ch.name}</span>
+                    `;
+                    listEl.appendChild(item);
+                });
+
+            } else {
+                titleEl.innerHTML = `<i class="fa-solid fa-comments text-indigo-400"></i> Личные Диалоги`;
+
+                DIRECT_MESSAGES.forEach(dm => {
+                    const isActive = currentChannelId === dm.id;
+                    const item = document.createElement('div');
+                    item.onclick = () => selectChannel(dm.id);
+                    item.className = `flex items-center space-x-3 p-2 rounded-xl cursor-pointer transition ${
+                        isActive ? 'bg-indigo-600/20 border border-indigo-500/30' : 'hover:bg-gray-800/60'
+                    }`;
+                    item.innerHTML = `
+                        <div class="relative shrink-0">
+                            <img src="${dm.avatar}" class="w-9 h-9 rounded-xl object-cover">
+                            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-dark-sidebar"></span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-gray-200 truncate flex items-center gap-1">
+                                    ${dm.name} ${dm.badge ? `<span class="bg-indigo-600 text-white text-[9px] px-1 rounded">${dm.badge}</span>` : ''}
+                                </span>
+                                <span class="text-[10px] text-gray-500">14:00</span>
+                            </div>
+                            <p class="text-[11px] text-gray-400 truncate">${dm.lastMsg}</p>
+                        </div>
+                    `;
+                    listEl.appendChild(item);
+                });
+            }
+        }
+
+        // 4. Select Active Channel/Chat
+        function selectChannel(channelId) {
+            currentChannelId = channelId;
+            renderMiddlePanel();
+            renderChatFeed();
+        }
+
+        // 5. Render Main Active Chat Messages
+        function renderChatFeed() {
+            const feed = document.getElementById('chatFeed');
+            const title = document.getElementById('activeChatTitle');
+            const subtitle = document.getElementById('activeChatSubtitle');
+            const icon = document.getElementById('activeChatIcon');
+
+            feed.innerHTML = '';
+
+            // Update Header Info
+            if (currentMode === 'server') {
+                const activeServer = servers.find(s => s.id === currentServerId);
+                const activeChannel = activeServer.channels.find(c => c.id === currentChannelId) || activeServer.channels[0];
+                icon.innerText = activeChannel.type === 'voice' ? '🔊' : '#';
+                title.innerText = activeChannel.name;
+                subtitle.innerText = activeChannel.desc || 'Описание канала отсутствует';
+            } else {
+                const dm = DIRECT_MESSAGES.find(d => d.id === currentChannelId) || DIRECT_MESSAGES[0];
+                icon.innerText = '@';
+                title.innerText = dm.name;
+                subtitle.innerText = `${dm.status === 'online' ? '🟢 В сети' : '🌙 Не активен'} • Защищенный личный диалог`;
+            }
+
+            const currentMsgs = messages[currentChannelId] || [];
+
+            if (currentMsgs.length === 0) {
+                feed.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-center text-gray-500 space-y-2">
+                        <i class="fa-solid fa-comments text-4xl text-gray-700"></i>
+                        <p class="text-sm">Здесь пока нет сообщений. Начните беседу первым!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            currentMsgs.forEach(msg => {
+                const msgNode = document.createElement('div');
+                msgNode.className = 'flex items-start space-x-3 group hover:bg-gray-900/40 p-2 rounded-xl transition';
+
+                // Reactions HTML generator
+                let reactionsHtml = '';
+                if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+                    reactionsHtml = `<div class="flex flex-wrap gap-1.5 mt-2">`;
+                    for (const [emoji, count] of Object.entries(msg.reactions)) {
+                        reactionsHtml += `
+                            <button onclick="addReaction('${msg.id}', '${emoji}')" class="bg-gray-800 hover:bg-indigo-900/40 border border-gray-700 rounded-lg px-2 py-0.5 text-xs text-gray-300 flex items-center space-x-1 transition">
+                                <span>${emoji}</span>
+                                <span class="text-[10px] text-gray-400 font-bold">${count}</span>
+                            </button>
+                        `;
+                    }
+                    reactionsHtml += `</div>`;
+                }
+
+                // Attachment Image render if exists
+                let attachmentHtml = '';
+                if (msg.attachment) {
+                    attachmentHtml = `
+                        <div class="mt-2 max-w-sm rounded-xl overflow-hidden border border-gray-700">
+                            <img src="${msg.attachment}" class="w-full h-auto object-cover max-h-60">
+                        </div>
+                    `;
+                }
+
+                msgNode.innerHTML = `
+                    <img src="${msg.avatar}" class="w-9 h-9 rounded-xl object-cover shrink-0 mt-0.5">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold text-gray-200 flex items-center gap-1">
+                                ${msg.sender}
+                                ${msg.isBot ? '<span class="bg-indigo-600 text-white text-[9px] px-1 rounded">BOT</span>' : ''}
+                            </span>
+                            <span class="text-[10px] text-gray-500">${msg.time}</span>
+                        </div>
+                        <p class="text-sm text-gray-300 mt-1 leading-relaxed chat-text-select break-words">${escapeHTML(msg.text)}</p>
+                        ${attachmentHtml}
+                        ${reactionsHtml}
+                    </div>
+
+                    <!-- Quick Action Floating Toolbar -->
+                    <div class="opacity-0 group-hover:opacity-100 transition bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 flex items-center space-x-2 shadow-lg">
+                        <button onclick="addReaction('${msg.id}', '👍')" class="text-xs hover:scale-125 transition">👍</button>
+                        <button onclick="addReaction('${msg.id}', '❤️')" class="text-xs hover:scale-125 transition">❤️</button>
+                        <button onclick="addReaction('${msg.id}', '🔥')" class="text-xs hover:scale-125 transition">🔥</button>
+                    </div>
+                `;
+                feed.appendChild(msgNode);
+            });
+
+            // Scroll to bottom
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        // Send Message Logic
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+
+            if (!text && !selectedAttachment) return;
+
+            const newMsg = {
+                id: 'msg-' + Date.now(),
+                sender: currentUser.name,
+                avatar: currentUser.avatar,
+                text: text,
+                attachment: selectedAttachment,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                reactions: {}
+            };
+
+            if (!messages[currentChannelId]) {
+                messages[currentChannelId] = [];
+            }
+
+            messages[currentChannelId].push(newMsg);
+            saveState();
+
+            input.value = '';
+            clearAttachment();
+            renderChatFeed();
+
+            // Auto-Bot Simulation Response
+            triggerBotAutoReply(text);
+        }
+
+        function handleInputKeydown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Reaction Handler
+        function addReaction(msgId, emoji) {
+            const chatMsgs = messages[currentChannelId] || [];
+            const target = chatMsgs.find(m => m.id === msgId);
+            if (target) {
+                if (!target.reactions) target.reactions = {};
+                target.reactions[emoji] = (target.reactions[emoji] || 0) + 1;
+                saveState();
+                renderChatFeed();
+            }
+        }
+
+        // Automated Intelligent Bot Reply Simulation
+        function triggerBotAutoReply(userText) {
+            const indicator = document.getElementById('typingIndicator');
+            const indicatorText = document.getElementById('typingUserText');
+
+            indicatorText.innerText = 'HamBot набирает сообщение...';
+            indicator.classList.remove('opacity-0');
+
+            setTimeout(() => {
+                indicator.classList.add('opacity-0');
+
+                let botReply = 'Спасибо за ваше сообщение! Сообщество HamSocial постоянно развивается. 🚀';
+                const lower = userText.toLowerCase();
+
+                if (lower.includes('привет') || lower.includes('здравствуй')) {
+                    botReply = 'Приветствую в HamSocial! Чем могу помочь вам сегодня? 😊';
+                } else if (lower.includes('кто ты') || lower.includes('бот')) {
+                    botReply = 'Я HamBot — официальный виртуальный помощник этой платформы!';
+                } else if (lower.includes('звонок') || lower.includes('связь')) {
+                    botReply = 'Нажмите на иконку трубки в верхнем меню, чтобы протестировать аудиосвязь!';
+                }
+
+                const botMsg = {
+                    id: 'msg-' + Date.now(),
+                    sender: 'HamBot',
+                    avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&q=80',
+                    text: botReply,
+                    isBot: true,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    reactions: { '🤖': 1 }
+                };
+
+                messages[currentChannelId].push(botMsg);
+                saveState();
+                renderChatFeed();
+            }, 1200);
+        }
+
+        // File Attachment Simulation
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    selectedAttachment = evt.target.result;
+                    document.getElementById('attachmentFileName').innerText = file.name;
+                    document.getElementById('attachmentPreview').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearAttachment() {
+            selectedAttachment = null;
+            document.getElementById('attachmentPreview').classList.add('hidden');
+            document.getElementById('fileUploadInput').value = '';
+        }
+
+        // Emoji Toggle
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            picker.classList.toggle('hidden');
+        }
+
+        function insertEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            input.value += emoji;
+            toggleEmojiPicker();
+            input.focus();
+        }
+
+        // Voice Record Simulation
+        function toggleVoiceRecordMock() {
+            const btn = document.getElementById('voiceRecordBtn');
+            btn.classList.toggle('text-red-500');
+            btn.classList.toggle('animate-pulse');
+        }
+
+        // Audio/Video Call Controls
+        function startVoiceCall() {
+            document.getElementById('callModalName').innerText = 'Аудиозвонок • HamSocial';
+            toggleCallModal(true);
+        }
+
+        function startVideoCall() {
+            document.getElementById('callModalName').innerText = 'Видеоконференция • HamSocial';
+            toggleCallModal(true);
+        }
+
+        function toggleCallModal(show) {
+            const modal = document.getElementById('callModal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function openDirectChatWith(name, avatar) {
+            switchView('dm');
+            renderChatFeed();
+        }
+
+        // Pinned Banner Toggle
+        function togglePinnedBar() {
+            const banner = document.getElementById('pinnedBanner');
+            banner.classList.toggle('hidden');
+        }
+
+        // Settings Modal Controls
+        function toggleSettingsModal(show) {
+            const modal = document.getElementById('settingsModal');
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
+        }
+
+        function saveSettings() {
+            currentUser.name = document.getElementById('settingsNameInput').value;
+            currentUser.tag = document.getElementById('settingsTagInput').value;
+            currentUser.avatar = document.getElementById('settingsAvatarInput').value;
+            
+            localStorage.setItem('hamsocial_user', JSON.stringify(currentUser));
+            updateUserProfileUI();
+            toggleSettingsModal(false);
+            renderChatFeed();
+        }
+
+        function updateUserProfileUI() {
+            document.getElementById('myUsername').innerText = currentUser.name;
+            document.getElementById('myUserTag').innerText = currentUser.tag;
+            document.getElementById('myAvatarMini').src = currentUser.avatar;
+            document.getElementById('userAvatar').src = currentUser.avatar;
+        }
+
+        // New Server Modal
+        function openNewServerModal() {
+            document.getElementById('newServerModal').classList.remove('hidden');
+        }
+
+        function closeNewServerModal() {
+            document.getElementById('newServerModal').classList.add('hidden');
+        }
+
+        function createCustomServer() {
+            const name = document.getElementById('newServerName').value.trim();
+            const icon = document.getElementById('newServerIcon').value.trim() || '🚀';
+
+            if (!name) return;
+
+            const newSrv = {
+                id: 'srv-' + Date.now(),
+                name: name,
+                icon: icon,
+                channels: [
+                    { id: 'ch-' + Date.now() + '-1', name: 'главный', type: 'text', desc: 'Приветственный канал' }
+                ]
+            };
+
+            servers.push(newSrv);
+            saveState();
+            closeNewServerModal();
+            selectServer(newSrv.id);
+        }
+
+        // Helper Utilities
+        function toggleRightPanel() {
+            const panel = document.getElementById('rightPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        function toggleStatusDropdown() {
+            const dd = document.getElementById('statusDropdown');
+            dd.classList.toggle('hidden');
+        }
+
+        function setUserStatus(statusKey, label, colorClass) {
+            document.getElementById('userStatusIndicator').className = `absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full ${colorClass} ring-2 ring-slate-950`;
+            toggleStatusDropdown();
+        }
+
+        function saveState() {
+            localStorage.setItem('hamsocial_servers', JSON.stringify(servers));
+            localStorage.setItem('hamsocial_messages', JSON.stringify(messages));
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
