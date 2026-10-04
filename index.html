@@ -1,641 +1,160 @@
-<!DOCTYPE html>
-<html lang="ru" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HamSocial — Платформа Общения & Сообществ</title>
-
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        tg: {
-                            blue: '#8774e1',
-                            blueHover: '#725ed0',
-                            bg: '#0f172a',
-                            sidebar: '#1e293b',
-                            card: '#334155',
-                            hover: '#334155',
-                            accent: '#38bdf8',
-                            bubbleOut: '#7c3aed',
-                            bubbleIn: '#1e293b'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- FontAwesome Icons CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Custom CSS Styles -->
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        * {
-            font-family: 'Inter', sans-serif;
-            user-select: none;
-        }
-
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, 0.2);
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(148, 163, 184, 0.4);
-        }
-
-        .chat-text-selectable {
-            user-select: text;
-        }
-
-        /* Voice Wave Visualizer Animation */
-        @keyframes wave-bars {
-            0%, 100% { height: 4px; }
-            50% { height: 18px; }
-        }
-        .animate-wave-1 { animation: wave-bars 0.8s infinite ease-in-out; }
-        .animate-wave-2 { animation: wave-bars 0.6s infinite ease-in-out 0.2s; }
-        .animate-wave-3 { animation: wave-bars 0.9s infinite ease-in-out 0.4s; }
-        .animate-wave-4 { animation: wave-bars 0.7s infinite ease-in-out 0.1s; }
-    </style>
-</head>
-<body class="bg-slate-950 text-slate-100 h-screen overflow-hidden flex flex-col antialiased">
-
-    <!-- AUTHENTICATION SCREEN -->
-    <div id="authScreen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-lg z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-            <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-600/30 rounded-full blur-2xl"></div>
-            <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-600/30 rounded-full blur-2xl"></div>
-
-            <div class="text-center mb-6 relative">
-                <div class="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl font-extrabold shadow-xl shadow-indigo-500/20 mb-3">
-                    <i class="fa-paper-plane fa-solid"></i>
-                </div>
-                <h1 class="text-2xl font-bold text-white tracking-wide">HamSocial</h1>
-                <p class="text-xs text-slate-400 mt-1">Мессенджер и сообщества нового поколения</p>
-            </div>
-
-            <!-- Auth Form Switcher -->
-            <div class="flex border-b border-slate-800 mb-5 text-sm font-semibold">
-                <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 pb-2.5 border-b-2 border-indigo-500 text-indigo-400 text-center transition">Вход</button>
-                <button id="tabRegister" onclick="switchAuthTab('register')" class="flex-1 pb-2.5 border-b-2 border-transparent text-slate-500 text-center hover:text-slate-300 transition">Регистрация</button>
-            </div>
-
-            <!-- Login Form -->
-            <form id="loginForm" onsubmit="handleLoginStep1(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Логин или Имя пользователя</label>
-                    <input type="text" id="loginUsername" placeholder="Например: owner или alex" required class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Пароль</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••" required class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                
-                <div class="bg-indigo-950/40 border border-indigo-800/40 rounded-xl p-3 text-[11px] text-indigo-300 flex items-start gap-2">
-                    <i class="fa-solid fa-key mt-0.5 text-amber-400"></i>
-                    <span><b>Аккаунт Владельца:</b><br>Логин: <code class="text-amber-300">owner</code> | Пароль: <code class="text-amber-300">admin123</code></span>
-                </div>
-
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-3 rounded-xl transition shadow-lg shadow-indigo-600/30">
-                    Получить код входа
-                </button>
-            </form>
-
-            <!-- Verification Code Sub-Form -->
-            <form id="verifyCodeForm" onsubmit="handleLoginStep2(event)" class="space-y-4 hidden">
-                <div class="text-center bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl text-xs text-slate-300 mb-2">
-                    <p class="text-indigo-400 font-semibold mb-1"><i class="fa-solid fa-robot mr-1"></i> HamVerify Bot</p>
-                    <p>Код подтверждения сгенерирован! Введите код ниже для входа:</p>
-                    <div id="generatedCodeDisplay" class="text-xl font-mono font-bold text-amber-400 mt-2 tracking-widest bg-slate-900 py-1.5 rounded-lg border border-amber-500/30"></div>
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Код из HamVerify Bot</label>
-                    <input type="text" id="verifyInputCode" maxlength="6" placeholder="123456" required class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-600/30">
-                    Подтвердить и Войти
-                </button>
-            </form>
-
-            <!-- Register Form -->
-            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-3 hidden">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Отображаемое имя</label>
-                    <input type="text" id="regName" placeholder="Алексей Смирнов" required class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Имя пользователя (@username)</label>
-                    <input type="text" id="regUsername" placeholder="alex_pro" required class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Пароль</label>
-                    <input type="password" id="regPassword" placeholder="••••••••" required class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Аватар (Ссылка)</label>
-                    <input type="text" id="regAvatar" value="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-3 rounded-xl transition shadow-lg shadow-indigo-600/30 mt-2">
-                    Зарегистрироваться
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- TOP HEADER / APP BAR -->
-    <header class="h-11 bg-slate-900 border-b border-slate-800/80 flex items-center justify-between px-4 text-xs select-none z-20">
-        <div class="flex items-center space-x-3">
-            <div class="flex items-center space-x-1.5">
-                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
-                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-            </div>
-            <span class="font-semibold text-slate-200 flex items-center gap-2 border-l border-slate-800 pl-3">
-                <i class="fa-paper-plane fa-solid text-indigo-400"></i> HamSocial Web
-            </span>
-        </div>
-
-        <div class="flex items-center space-x-3 text-slate-400">
-            <button id="adminPanelBtn" onclick="toggleAdminPanel(true)" class="hidden text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1.5 bg-amber-950/50 border border-amber-800/60 px-2.5 py-1 rounded-lg text-[11px] transition">
-                <i class="fa-solid fa-crown text-xs"></i> Панель Владельца
-            </button>
-            <button onclick="toggleTheme()" class="p-1.5 hover:text-slate-200 transition" title="Сменить тему">
-                <i class="fa-solid fa-moon"></i>
-            </button>
-            <button onclick="logout()" class="hover:text-rose-400 transition" title="Выйти из аккаунта">
-                <i class="fa-solid fa-right-from-bracket"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- MAIN APP CONTAINER -->
-    <div class="flex-1 flex overflow-hidden relative">
-
-        <!-- 1. FOLDER / NAVIGATION RAIL (Telegram Left Sidebar) -->
-        <div class="w-16 bg-slate-900/90 border-r border-slate-800 flex flex-col items-center py-3 space-y-4 shrink-0 z-10">
-            <button onclick="filterFolder('all')" id="folder-all" class="folder-btn w-10 h-10 rounded-xl bg-indigo-600 text-white flex flex-col items-center justify-center text-xs transition relative group" title="Все чаты">
-                <i class="fa-solid fa-comments text-base"></i>
-                <span class="text-[9px] mt-0.5 font-medium">Все</span>
-            </button>
-
-            <button onclick="filterFolder('personal')" id="folder-personal" class="folder-btn w-10 h-10 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 flex flex-col items-center justify-center text-xs transition relative group" title="Личные чаты">
-                <i class="fa-solid fa-user text-base"></i>
-                <span class="text-[9px] mt-0.5 font-medium">Личные</span>
-            </button>
-
-            <button onclick="filterFolder('groups')" id="folder-groups" class="folder-btn w-10 h-10 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 flex flex-col items-center justify-center text-xs transition relative group" title="Группы">
-                <i class="fa-solid fa-users text-base"></i>
-                <span class="text-[9px] mt-0.5 font-medium">Группы</span>
-            </button>
-
-            <button onclick="filterFolder('channels')" id="folder-channels" class="folder-btn w-10 h-10 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 flex flex-col items-center justify-center text-xs transition relative group" title="Каналы">
-                <i class="fa-solid fa-bullhorn text-base"></i>
-                <span class="text-[9px] mt-0.5 font-medium">Каналы</span>
-            </button>
-
-            <button onclick="filterFolder('bots')" id="folder-bots" class="folder-btn w-10 h-10 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 flex flex-col items-center justify-center text-xs transition relative group" title="Боты">
-                <i class="fa-solid fa-robot text-base"></i>
-                <span class="text-[9px] mt-0.5 font-medium">Боты</span>
-            </button>
-
-            <div class="flex-1"></div>
-
-            <!-- Create Group / Channel Modal Trigger -->
-            <button onclick="toggleCreateCommunityModal(true)" class="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white flex items-center justify-center text-base transition shadow-sm" title="Создать группу или канал">
-                <i class="fa-solid fa-plus"></i>
-            </button>
-
-            <!-- Profile Avatar Settings Trigger -->
-            <div class="pt-2">
-                <img id="myAvatarRail" onclick="toggleSettingsModal(true)" src="" class="w-9 h-9 rounded-xl object-cover cursor-pointer ring-2 ring-indigo-500/40 hover:ring-indigo-400 transition">
-            </div>
-        </div>
-
-        <!-- 2. CHATS & CHANNELS LIST PANEL -->
-        <div class="w-80 bg-slate-900 border-r border-slate-800/80 flex flex-col shrink-0">
-            <!-- Search Bar -->
-            <div class="p-3 border-b border-slate-800/80">
-                <div class="relative">
-                    <input type="text" id="searchInput" onkeyup="renderChatList()" placeholder="Поиск чатов, каналов..." class="w-full bg-slate-800/80 text-xs text-slate-200 placeholder-slate-500 rounded-xl pl-9 pr-3 py-2 border border-slate-700/60 focus:outline-none focus:border-indigo-500">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
-                </div>
-            </div>
-
-            <!-- Chat Cards Container -->
-            <div id="chatList" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
-
-            <!-- Current Profile Info Footer -->
-            <div class="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
-                <div class="flex items-center space-x-2.5 min-w-0">
-                    <img id="myAvatarBottom" src="" class="w-8 h-8 rounded-xl object-cover">
-                    <div class="min-w-0">
-                        <div id="myUsernameBottom" class="text-xs font-semibold text-slate-200 truncate"></div>
-                        <div id="myUserTagBottom" class="text-[10px] text-slate-400 truncate"></div>
-                    </div>
-                </div>
-                <button onclick="toggleSettingsModal(true)" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Настройки профиля">
-                    <i class="fa-solid fa-gear text-xs"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- 3. MAIN CONVERSATION / FEED PANEL -->
-        <div class="flex-1 bg-slate-950 flex flex-col min-w-0 h-full relative">
-            
-            <!-- Active Chat Header -->
-            <div class="h-14 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 flex items-center justify-between z-10">
-                <div class="flex items-center space-x-3 min-w-0 cursor-pointer" onclick="openActiveChatInfo()">
-                    <div id="activeChatAvatar" class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-indigo-400 font-bold overflow-hidden shrink-0"></div>
-                    <div class="min-w-0">
-                        <h2 id="activeChatTitle" class="text-sm font-bold text-slate-100 truncate flex items-center gap-1.5"></h2>
-                        <p id="activeChatSubtitle" class="text-[11px] text-slate-400 truncate"></p>
-                    </div>
-                </div>
-
-                <!-- Chat Header Actions & Join/Subscribe Button -->
-                <div class="flex items-center space-x-3">
-                    <div id="joinSubscribeContainer"></div>
-                    <button onclick="toggleRightPanel()" class="p-2 text-slate-400 hover:bg-slate-800 hover:text-indigo-400 rounded-xl transition" title="Информация">
-                        <i class="fa-solid fa-circle-info text-base"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Messages List Stream -->
-            <div id="chatFeed" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
-
-            <!-- Typing or Recording Status Bar -->
-            <div id="statusIndicator" class="px-4 py-1 text-[11px] text-slate-400 italic h-6 flex items-center gap-2 opacity-0 transition-opacity">
-                <i class="fa-solid fa-ellipsis fa-bounce text-indigo-400"></i>
-                <span id="statusIndicatorText">Печатает...</span>
-            </div>
-
-            <!-- Recording Voice Animation Box Overlay -->
-            <div id="voiceRecordingBox" class="hidden px-4 py-3 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
-                <div class="flex items-center space-x-3 text-rose-500 animate-pulse">
-                    <i class="fa-solid fa-microphone text-lg"></i>
-                    <span id="voiceRecordTimer" class="text-xs font-mono font-bold text-slate-200">00:00</span>
-                </div>
-                <div class="flex items-center space-x-1.5 h-6">
-                    <span class="w-1 bg-rose-500 rounded-full animate-wave-1"></span>
-                    <span class="w-1 bg-rose-500 rounded-full animate-wave-2"></span>
-                    <span class="w-1 bg-rose-500 rounded-full animate-wave-3"></span>
-                    <span class="w-1 bg-rose-500 rounded-full animate-wave-4"></span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="cancelVoiceRecording()" class="text-xs text-slate-400 hover:text-rose-400 px-3 py-1.5">Отмена</button>
-                    <button onclick="finishVoiceRecording()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-md shadow-rose-600/30">Отправить</button>
-                </div>
-            </div>
-
-            <!-- Input Area -->
-            <div id="messageInputArea" class="p-3 bg-slate-900 border-t border-slate-800">
-                <div class="bg-slate-950 rounded-2xl border border-slate-800 p-2 flex flex-col space-y-2 focus-within:border-indigo-500/80 transition">
-                    
-                    <!-- File Attachment Preview Card -->
-                    <div id="attachmentPreview" class="hidden px-3 py-2 bg-slate-800/80 rounded-xl text-xs text-slate-300 flex items-center justify-between">
-                        <div class="flex items-center gap-2 truncate">
-                            <i id="attachmentIcon" class="fa-solid fa-paperclip text-indigo-400"></i>
-                            <span id="attachmentFileName" class="truncate font-medium">file.png</span>
-                        </div>
-                        <button onclick="clearAttachment()" class="text-slate-400 hover:text-rose-400 p-1">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-
-                    <!-- Input Controls Bar -->
-                    <div class="flex items-center space-x-2">
-                        <label class="p-2 text-slate-400 hover:text-indigo-400 cursor-pointer transition rounded-xl hover:bg-slate-800">
-                            <i class="fa-solid fa-paperclip text-base"></i>
-                            <input type="file" id="fileUploadInput" onchange="handleFileSelect(event)" class="hidden">
-                        </label>
-
-                        <textarea id="messageInput" onkeydown="handleInputKeydown(event)" rows="1" placeholder="Написать сообщение..." class="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none resize-none max-h-32 chat-text-selectable"></textarea>
-
-                        <!-- Emoji Selector -->
-                        <div class="relative">
-                            <button onclick="toggleEmojiPicker()" class="p-2 text-slate-400 hover:text-amber-400 transition rounded-xl hover:bg-slate-800">
-                                <i class="fa-regular fa-face-smile text-lg"></i>
-                            </button>
-                            <div id="emojiPicker" class="hidden absolute right-0 bottom-12 bg-slate-900 border border-slate-700 p-3 rounded-2xl shadow-2xl grid grid-cols-6 gap-2 text-xl z-50">
-                                <span onclick="insertEmoji('👍')" class="cursor-pointer hover:scale-125 transition">👍</span>
-                                <span onclick="insertEmoji('❤️')" class="cursor-pointer hover:scale-125 transition">❤️</span>
-                                <span onclick="insertEmoji('🔥')" class="cursor-pointer hover:scale-125 transition">🔥</span>
-                                <span onclick="insertEmoji('😂')" class="cursor-pointer hover:scale-125 transition">😂</span>
-                                <span onclick="insertEmoji('🎉')" class="cursor-pointer hover:scale-125 transition">🎉</span>
-                                <span onclick="insertEmoji('🚀')" class="cursor-pointer hover:scale-125 transition">🚀</span>
-                                <span onclick="insertEmoji('👑')" class="cursor-pointer hover:scale-125 transition">👑</span>
-                                <span onclick="insertEmoji('😎')" class="cursor-pointer hover:scale-125 transition">😎</span>
-                                <span onclick="insertEmoji('💯')" class="cursor-pointer hover:scale-125 transition">💯</span>
-                                <span onclick="insertEmoji('⚡')" class="cursor-pointer hover:scale-125 transition">⚡</span>
-                                <span onclick="insertEmoji('🐹')" class="cursor-pointer hover:scale-125 transition">🐹</span>
-                                <span onclick="insertEmoji('🤝')" class="cursor-pointer hover:scale-125 transition">🤝</span>
-                            </div>
-                        </div>
-
-                        <!-- Record Voice Button -->
-                        <button id="voiceRecordBtn" onclick="startVoiceRecording()" class="p-2 text-slate-400 hover:text-rose-400 transition rounded-xl hover:bg-slate-800" title="Записать голосовое">
-                            <i class="fa-solid fa-microphone text-base"></i>
-                        </button>
-
-                        <!-- Send Button -->
-                        <button onclick="sendMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30">
-                            <span>Отправить</span>
-                            <i class="fa-solid fa-paper-plane text-[10px]"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Restrict Posting for Non-Admins in Channels Banner -->
-            <div id="readOnlyChannelBanner" class="hidden p-3 bg-slate-900 border-t border-slate-800 text-center text-xs text-slate-400 italic">
-                <i class="fa-solid fa-lock mr-1.5 text-amber-400"></i> Токлько администраторы могут публиковать записи в этом канале.
-            </div>
-        </div>
-
-        <!-- 4. RIGHT SIDEBAR (Chat Info & Member List) -->
-        <div id="rightPanel" class="w-64 bg-slate-900 border-l border-slate-800/80 flex flex-col shrink-0">
-            <div class="h-14 px-4 border-b border-slate-800 flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Информация</span>
-                <button onclick="toggleRightPanel()" class="text-slate-400 hover:text-white">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="p-4 flex flex-col items-center border-b border-slate-800 text-center">
-                <div id="infoPanelAvatar" class="w-20 h-20 rounded-2xl bg-slate-800 mb-3 flex items-center justify-center text-2xl overflow-hidden"></div>
-                <h3 id="infoPanelName" class="text-sm font-bold text-white"></h3>
-                <p id="infoPanelMeta" class="text-xs text-slate-400 mt-0.5"></p>
-                <p id="infoPanelDesc" class="text-xs text-slate-300 mt-3 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 w-full text-left"></p>
-            </div>
-            <div class="px-4 py-2 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Участники / Информация
-            </div>
-            <div id="membersList" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
-        </div>
-
-    </div>
-
-    <!-- OWNER ADMIN MODAL -->
-    <div id="adminModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-900 border border-amber-800/50 rounded-3xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="text-amber-400 text-xl">👑</span>
-                    <h2 class="text-base font-bold text-white">Панель Управления Владельца</h2>
-                </div>
-                <button onclick="toggleAdminPanel(false)" class="text-slate-400 hover:text-white">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto space-y-4 text-xs">
-                <div class="bg-amber-950/30 border border-amber-800/40 rounded-2xl p-4">
-                    <h3 class="font-bold text-amber-300 text-sm mb-1">Статус Владельца Активен</h3>
-                    <p class="text-slate-300">Вам доступны высшие модераторские полномочия. Вы можете удалять любые сообщения, управлять каналами и очищать истории общения.</p>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-slate-200 mb-2">Управление Пользователями</h4>
-                    <div id="adminUserList" class="space-y-2"></div>
-                </div>
-
-                <div class="pt-2 border-t border-slate-800">
-                    <h4 class="font-bold text-slate-200 mb-2">Быстрые Действия</h4>
-                    <button onclick="adminClearCurrentChat()" class="bg-rose-600/80 hover:bg-rose-600 text-white font-bold px-4 py-2 rounded-xl transition">
-                        <i class="fa-solid fa-trash mr-1.5"></i> Очистить историю текущего чата
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- CREATE COMMUNITY MODAL (Channels & Groups) -->
-    <div id="createCommunityModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl relative">
-            <button onclick="toggleCreateCommunityModal(false)" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <h2 class="text-base font-bold text-white mb-3">Создать Канал или Группу</h2>
-            
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1">Тип сообщества</label>
-                    <select id="newType" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none">
-                        <option value="channel">📢 Канал (Только админы могут писать)</option>
-                        <option value="group">💬 Группа (Все могут участвовать)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Название</label>
-                    <input type="text" id="newName" placeholder="Например: Новости IT" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Описание</label>
-                    <input type="text" id="newDesc" placeholder="О чем ваш канал или группа?" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Иконка (Эмодзи)</label>
-                    <input type="text" id="newIcon" value="🚀" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none">
-                </div>
-            </div>
-
-            <div class="mt-5 flex justify-end space-x-2">
-                <button onclick="createNewCommunity()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">Создать</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- PROFILE SETTINGS MODAL -->
-    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative">
-            <button onclick="toggleSettingsModal(false)" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <h2 class="text-base font-bold text-white mb-4">Настройки Профиля</h2>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1">Отображаемое имя</label>
-                    <input type="text" id="settingsName" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Ссылка на аватар</label>
-                    <input type="text" id="settingsAvatar" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-indigo-500">
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end space-x-2">
-                <button onclick="saveProfileSettings()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- APPLICATION JAVASCRIPT ENGINE -->
-    <script>
-        /* Seeded System Data Structure */
-        const DEFAULT_CHATS = [
-            {
-                id: 'bot-verify',
-                type: 'bot',
-                name: 'HamVerify Bot',
-                username: 'verify_bot',
-                icon: '🤖',
-                avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80',
-                desc: 'Официальный бот верификации и кодов входа.',
+icon: '📰',
+                avatar: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=150&q=80',
+                desc: 'Автоматический агрегатор новостей технологий и IT.',
                 members: [],
                 subscribers: []
             },
             {
-                id: 'bot-news',
-                type: 'bot',
-                name: 'HamNews Bot',
-                username: 'news_bot',
-                icon: '📰',
-                avatar: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=150&q=80',
-                desc: 'Официальный канал новостей и анонсов платформы.',
-                members: [],
-                subscribers: ['owner', 'u2', 'u3']
-            },
-            {
-                id: 'channel-tech',
+                id: 'channel-announcements',
                 type: 'channel',
-                name: 'IT & Технологии',
-                username: 'tech_news',
-                icon: '💻',
-                desc: 'Главные новости разработки, IT и гаджетов.',
-                ownerId: 'owner',
-                subscribers: ['owner', 'u2']
+                name: 'HamSocial | Новости',
+                username: 'hamsocial_news',
+                icon: '📢',
+                avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80',
+                desc: 'Официальные объявления и обновления платформы HamSocial.',
+                creator: 'owner',
+                subscribers: ['owner']
             },
             {
                 id: 'group-general',
                 type: 'group',
-                name: 'Общая Гостиная',
+                name: 'Главный Чат Сообщества',
                 username: 'general_chat',
                 icon: '💬',
-                desc: 'Свободное общение пользователей платформы.',
-                ownerId: 'owner',
-                members: ['owner', 'u2', 'u3']
+                avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=150&q=80',
+                desc: 'Общий чат для общения участников платформы.',
+                creator: 'owner',
+                members: ['owner', 'alex']
+            },
+            {
+                id: 'user-alex',
+                type: 'personal',
+                name: 'Алексей Смирнов',
+                username: 'alex',
+                icon: '👤',
+                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+                desc: 'Senior Frontend Developer. Пишу на Vue и Tailwind.'
             }
         ];
 
         const DEFAULT_USERS = [
-            { id: 'owner', name: 'Максим (Владелец)', username: 'owner', password: 'admin123', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80', isOwner: true, statusText: 'В сети' },
-            { id: 'u2', name: 'Мария Петрова', username: 'maria', password: '123', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80', statusText: 'Была в сети недавно' },
-            { id: 'u3', name: 'Дмитрий Иванов', username: 'dmitry', password: '123', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80', statusText: 'В сети' }
+            {
+                username: 'owner',
+                password: 'admin123',
+                name: 'Владелец Системы',
+                avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+                isOwner: true
+            },
+            {
+                username: 'alex',
+                password: '123',
+                name: 'Алексей Смирнов',
+                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+                isOwner: false
+            }
         ];
 
         const DEFAULT_MESSAGES = {
-            'bot-verify': [
-                { id: 'm-v1', senderId: 'bot-verify', text: 'Добро пожаловать в HamVerify Bot! Сюда будут приходить коды подтверждения при входе.', time: '12:00', reactions: {} }
-            ],
-            'bot-news': [
-                { id: 'm-n1', senderId: 'bot-news', text: '🚀 <b>HamSocial MAX Обновление v3.5!</b><br><br>1. ИИ-Бот удален по запросам пользователей.<br>2. Добавлены официальные боты <b>HamVerify</b> и <b>HamNews</b>.<br>3. Голосовые сообщения полностью исправлены!<br>4. Введена система Каналов и Групп с подписками!', time: '12:05', reactions: { '🚀': ['owner', 'u2'] } }
-            ],
-            'channel-tech': [
-                { id: 'm-t1', senderId: 'owner', text: 'Добро пожаловать в официальный технологический канал!', time: '13:00', reactions: { '🔥': ['u2'] } }
+            'channel-announcements': [
+                { id: 1, sender: 'owner', text: 'Добро пожаловать в HamSocial! Мы запустили веб-версию платформы.', time: '10:00' }
             ],
             'group-general': [
-                { id: 'm-g1', senderId: 'u2', text: 'Всем привет! Как вам новый интерфейс в стиле Телеграма?', time: '13:10', reactions: { '👍': ['owner'] } }
+                { id: 1, sender: 'alex', text: 'Всем привет! Как вам новый интерфейс?', time: '10:05' },
+                { id: 2, sender: 'owner', text: 'Привет! Работаем над оптимизацией.', time: '10:06' }
+            ],
+            'user-alex': [
+                { id: 1, sender: 'alex', text: 'Приветствую! Оцените новый релиз при возможности.', time: '09:30' }
             ]
         };
 
-        // State Management
-        let currentUser = JSON.parse(localStorage.getItem('hamsocial_user')) || null;
-        let usersDB = JSON.parse(localStorage.getItem('hamsocial_users_db')) || DEFAULT_USERS;
-        let chatsDB = JSON.parse(localStorage.getItem('hamsocial_chats_db')) || DEFAULT_CHATS;
-        let messagesDB = JSON.parse(localStorage.getItem('hamsocial_messages_db')) || DEFAULT_MESSAGES;
-
+        // Application State Variables
+        let users = JSON.parse(localStorage.getItem('hs_users')) || DEFAULT_USERS;
+        let chats = JSON.parse(localStorage.getItem('hs_chats')) || DEFAULT_CHATS;
+        let messages = JSON.parse(localStorage.getItem('hs_messages')) || DEFAULT_MESSAGES;
+        let currentUser = JSON.parse(localStorage.getItem('hs_current_user')) || null;
+        let activeChatId = localStorage.getItem('hs_active_chat') || 'group-general';
         let activeFolder = 'all';
-        let activeChatId = 'group-general';
-
         let pendingAuthUser = null;
-        let generatedAuthCode = null;
+        let generated2FACode = null;
+        let currentAttachment = null;
+        let voiceTimerInterval = null;
+        let voiceSeconds = 0;
 
-        let selectedFileAttachment = null;
-        let voiceRecorderInterval = null;
-        let voiceRecordSeconds = 0;
-
-        // Init App
-        window.addEventListener('DOMContentLoaded', () => {
-            if (!currentUser) {
-                document.getElementById('authScreen').classList.remove('hidden');
+        function saveData() {
+            localStorage.setItem('hs_users', JSON.stringify(users));
+            localStorage.setItem('hs_chats', JSON.stringify(chats));
+            localStorage.setItem('hs_messages', JSON.stringify(messages));
+            if (currentUser) {
+                localStorage.setItem('hs_current_user', JSON.stringify(currentUser));
             } else {
-                document.getElementById('authScreen').classList.add('hidden');
-                initMainUI();
+                localStorage.removeItem('hs_current_user');
             }
-        });
+            localStorage.setItem('hs_active_chat', activeChatId);
+        }
 
-        /* Authentication Engine with Verification Bot */
+        // --- AUTHENTICATION MODULE ---
         function switchAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const verifyForm = document.getElementById('verifyCodeForm');
+            const tabLogin = document.getElementById('tabLogin');
+            const tabRegister = document.getElementById('tabRegister');
+
+            verifyForm.classList.add('hidden');
+
             if (tab === 'login') {
-                document.getElementById('loginForm').classList.remove('hidden');
-                document.getElementById('verifyCodeForm').classList.add('hidden');
-                document.getElementById('registerForm').classList.add('hidden');
-                document.getElementById('tabLogin').className = 'flex-1 pb-2.5 border-b-2 border-indigo-500 text-indigo-400 text-center transition';
-                document.getElementById('tabRegister').className = 'flex-1 pb-2.5 border-b-2 border-transparent text-slate-500 text-center hover:text-slate-300 transition';
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                tabLogin.className = "flex-1 pb-2.5 border-b-2 border-indigo-500 text-indigo-400 text-center transition";
+                tabRegister.className = "flex-1 pb-2.5 border-b-2 border-transparent text-slate-500 text-center hover:text-slate-300 transition";
             } else {
-                document.getElementById('loginForm').classList.add('hidden');
-                document.getElementById('verifyCodeForm').classList.add('hidden');
-                document.getElementById('registerForm').classList.remove('hidden');
-                document.getElementById('tabRegister').className = 'flex-1 pb-2.5 border-b-2 border-indigo-500 text-indigo-400 text-center transition';
-                document.getElementById('tabLogin').className = 'flex-1 pb-2.5 border-b-2 border-transparent text-slate-500 text-center hover:text-slate-300 transition';
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                tabRegister.className = "flex-1 pb-2.5 border-b-2 border-indigo-500 text-indigo-400 text-center transition";
+                tabLogin.className = "flex-1 pb-2.5 border-b-2 border-transparent text-slate-500 text-center hover:text-slate-300 transition";
             }
         }
 
         function handleLoginStep1(e) {
             e.preventDefault();
-            const username = document.getElementById('loginUsername').value.trim().toLowerCase();
-            const pass = document.getElementById('loginPassword').value.trim();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
 
-            const found = usersDB.find(u => u.username.toLowerCase() === username && u.password === pass);
+            const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
 
-            if (!found) {
-                alert('Неверный логин или пароль!');
+            if (!user) {
+                alert('Неверное имя пользователя или пароль!');
                 return;
             }
 
-            pendingAuthUser = found;
+            pendingAuthUser = user;
+            generated2FACode = Math.floor(100000 + Math.random() * 900000).toString();
 
-            // Generate 6-digit verification code sent by HamVerify Bot
-            generatedAuthCode = Math.floor(100000 + Math.random() * 900000).toString();
-
+            document.getElementById('generatedCodeDisplay').textContent = generated2FACode;
             document.getElementById('loginForm').classList.add('hidden');
             document.getElementById('verifyCodeForm').classList.remove('hidden');
-            document.getElementById('generatedCodeDisplay').innerText = generatedAuthCode;
 
-            // Record verification message in verify bot chat
-            if (!messagesDB['bot-verify']) messagesDB['bot-verify'] = [];
-            messagesDB['bot-verify'].push({
-                id: 'm-code-' + Date.now(),
-                senderId: 'bot-verify',
-                text: `🔒 Ваш код подтверждения для входа в аккаунт @${found.username}: <b>${generatedAuthCode}</b>`,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                reactions: {}
+            // Push verification code to system bot message history
+            if (!messages['bot-verify']) messages['bot-verify'] = [];
+            messages['bot-verify'].push({
+                id: Date.now(),
+                sender: 'bot-verify',
+                text: `🔑 Ваш одноразовый код входа в HamSocial: ${generated2FACode}`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
-            saveMessagesDB();
+            saveData();
         }
 
         function handleLoginStep2(e) {
             e.preventDefault();
             const inputCode = document.getElementById('verifyInputCode').value.trim();
 
-            if (inputCode === generatedAuthCode) {
+            if (inputCode === generated2FACode) {
                 currentUser = pendingAuthUser;
-                saveUserSession();
-                document.getElementById('authScreen').classList.add('hidden');
-                initMainUI();
+                pendingAuthUser = null;
+                generated2FACode = null;
+                saveData();
+                initApp();
             } else {
                 alert('Неверный код подтверждения!');
             }
@@ -644,491 +163,363 @@
         function handleRegister(e) {
             e.preventDefault();
             const name = document.getElementById('regName').value.trim();
-            const username = document.getElementById('regUsername').value.trim().toLowerCase();
-            const pass = document.getElementById('regPassword').value.trim();
+            const username = document.getElementById('regUsername').value.trim().replace(/^@/, '');
+            const password = document.getElementById('regPassword').value.trim();
             const avatar = document.getElementById('regAvatar').value.trim();
 
-            if (usersDB.some(u => u.username === username)) {
-                alert('Имя пользователя уже занято!');
+            if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                alert('Пользователь с таким именем уже существует!');
                 return;
             }
 
-            const newUser = {
-                id: 'u-' + Date.now(),
+            const newUser = { username, password, name, avatar, isOwner: false };
+            users.push(newUser);
+
+            // Add personal direct message entry
+            chats.push({
+                id: `user-${username}`,
+                type: 'personal',
                 name: name,
                 username: username,
-                password: pass,
-                avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-                statusText: 'В сети'
-            };
-
-            usersDB.push(newUser);
-            localStorage.setItem('hamsocial_users_db', JSON.stringify(usersDB));
+                icon: '👤',
+                avatar: avatar,
+                desc: 'Пользователь HamSocial'
+            });
 
             currentUser = newUser;
-            saveUserSession();
-            document.getElementById('authScreen').classList.add('hidden');
-            initMainUI();
+            saveData();
+            initApp();
         }
 
         function logout() {
-            localStorage.removeItem('hamsocial_user');
             currentUser = null;
-            location.reload();
+            saveData();
+            document.getElementById('authScreen').classList.remove('hidden');
         }
 
-        function saveUserSession() {
-            localStorage.setItem('hamsocial_user', JSON.stringify(currentUser));
-        }
+        // --- INITIALIZATION ---
+        function initApp() {
+            if (!currentUser) {
+                document.getElementById('authScreen').classList.remove('hidden');
+                return;
+            }
 
-        /* UI Render Logic */
-        function initMainUI() {
-            updateProfileBar();
-            renderChatList();
-            openChat(activeChatId);
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('myAvatarRail').src = currentUser.avatar;
+            document.getElementById('myAvatarBottom').src = currentUser.avatar;
+            document.getElementById('myUsernameBottom').textContent = currentUser.name;
+            document.getElementById('myUserTagBottom').textContent = `@${currentUser.username}`;
 
             if (currentUser.isOwner) {
                 document.getElementById('adminPanelBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('adminPanelBtn').classList.add('hidden');
             }
+
+            renderChatList();
+            selectChat(activeChatId);
         }
 
-        function updateProfileBar() {
-            document.getElementById('myAvatarRail').src = currentUser.avatar;
-            document.getElementById('myAvatarBottom').src = currentUser.avatar;
-            document.getElementById('myUsernameBottom').innerHTML = `${currentUser.name} ${currentUser.isOwner ? '<span class="text-amber-400">👑</span>' : ''}`;
-            document.getElementById('myUserTagBottom').innerText = '@' + currentUser.username;
-        }
-
+        // --- NAVIGATION & FILTERING ---
         function filterFolder(folder) {
             activeFolder = folder;
             document.querySelectorAll('.folder-btn').forEach(btn => {
-                btn.className = 'folder-btn w-10 h-10 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 flex flex-col items-center justify-center text-xs transition relative group';
+                btn.className = "folder-btn w-10 h-10 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 flex flex-col items-center justify-center text-xs transition relative group";
             });
-            const selected = document.getElementById('folder-' + folder);
-            if (selected) {
-                selected.className = 'folder-btn w-10 h-10 rounded-xl bg-indigo-600 text-white flex flex-col items-center justify-center text-xs transition relative group';
+            const activeBtn = document.getElementById(`folder-${folder}`);
+            if (activeBtn) {
+                activeBtn.className = "folder-btn w-10 h-10 rounded-xl bg-indigo-600 text-white flex flex-col items-center justify-center text-xs transition relative group";
             }
             renderChatList();
         }
 
         function renderChatList() {
-            const listContainer = document.getElementById('chatList');
-            listContainer.innerHTML = '';
+            const list = document.getElementById('chatList');
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            list.innerHTML = '';
 
-            const query = document.getElementById('searchInput').value.trim().toLowerCase();
-
-            // Prepare list including Channels, Groups, Bots, and DMs
-            let items = [];
-
-            chatsDB.forEach(c => items.push(c));
-
-            // Also add DM user entries
-            usersDB.filter(u => u.id !== currentUser.id).forEach(u => {
-                items.push({
-                    id: u.id,
-                    type: 'personal',
-                    name: u.name,
-                    username: u.username,
-                    avatar: u.avatar,
-                    statusText: u.statusText
-                });
+            const filtered = chats.filter(c => {
+                const matchesFolder = (activeFolder === 'all') || (c.type === activeFolder);
+                const matchesQuery = c.name.toLowerCase().includes(query) || c.username.toLowerCase().includes(query);
+                // Don't show current user's own direct message to themselves
+                const isNotSelf = c.id !== `user-${currentUser?.username}`;
+                return matchesFolder && matchesQuery && isNotSelf;
             });
 
-            // Filter items by search query & folder
-            const filtered = items.filter(item => {
-                const matchesQuery = item.name.toLowerCase().includes(query) || (item.username && item.username.toLowerCase().includes(query));
-                if (!matchesQuery) return false;
+            filtered.forEach(c => {
+                const isActive = c.id === activeChatId;
+                const chatMsgs = messages[c.id] || [];
+                const lastMsg = chatMsgs[chatMsgs.length - 1];
+                const lastText = lastMsg ? (lastMsg.voice ? '🎙️ Голосовое сообщение' : (lastMsg.file ? '📎 Файл' : lastMsg.text)) : 'Нет сообщений';
+                const lastTime = lastMsg ? lastMsg.time : '';
 
-                if (activeFolder === 'all') return true;
-                if (activeFolder === 'personal') return item.type === 'personal';
-                if (activeFolder === 'groups') return item.type === 'group';
-                if (activeFolder === 'channels') return item.type === 'channel';
-                if (activeFolder === 'bots') return item.type === 'bot';
-                return true;
-            });
+                const item = document.createElement('div');
+                item.onclick = () => selectChat(c.id);
+                item.className = `p-2.5 rounded-2xl cursor-pointer transition flex items-center space-x-3 ${isActive ? 'bg-indigo-600/20 border border-indigo-500/30' : 'hover:bg-slate-800/60'}`;
 
-            filtered.forEach(item => {
-                const isActive = item.id === activeChatId;
-                const card = document.createElement('div');
-                card.onclick = () => openChat(item.id);
-                card.className = `p-2.5 rounded-2xl flex items-center space-x-3 cursor-pointer transition ${
-                    isActive ? 'bg-indigo-600/20 border border-indigo-500/40' : 'hover:bg-slate-800/60'
-                }`;
-
-                let avatarHtml = '';
-                if (item.avatar) {
-                    avatarHtml = `<img src="${item.avatar}" class="w-10 h-10 rounded-xl object-cover shrink-0">`;
-                } else {
-                    avatarHtml = `<div class="w-10 h-10 rounded-xl bg-slate-800 text-indigo-400 flex items-center justify-center font-bold text-lg shrink-0">${item.icon || '💬'}</div>`;
-                }
-
-                const lastMsgList = messagesDB[item.id] || [];
-                const lastMsg = lastMsgList[lastMsgList.length - 1];
-                const lastText = lastMsg ? lastMsg.text.replace(/<[^>]*>?/gm, '') : (item.desc || 'Нет сообщений');
-
-                card.innerHTML = `
-                    ${avatarHtml}
+                item.innerHTML = `
+                    <div class="relative shrink-0">
+                        <img src="${c.avatar}" class="w-11 h-11 rounded-xl object-cover">
+                        <span class="absolute -bottom-1 -right-1 text-xs">${c.icon}</span>
+                    </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between">
-                            <h4 class="text-xs font-bold text-slate-200 truncate">${item.name}</h4>
-                            <span class="text-[10px] text-slate-500">${lastMsg ? lastMsg.time : ''}</span>
+                            <h4 class="text-xs font-bold text-slate-100 truncate">${c.name}</h4>
+                            <span class="text-[10px] text-slate-500">${lastTime}</span>
                         </div>
                         <p class="text-[11px] text-slate-400 truncate mt-0.5">${lastText}</p>
                     </div>
                 `;
-                listContainer.appendChild(card);
+                list.appendChild(item);
             });
         }
 
-        function openChat(chatId) {
-            activeChatId = chatId;
+        // --- CHAT RENDER & SELECTION ---
+        function selectChat(id) {
+            activeChatId = id;
+            saveData();
             renderChatList();
 
-            const titleEl = document.getElementById('activeChatTitle');
-            const subtitleEl = document.getElementById('activeChatSubtitle');
-            const avatarEl = document.getElementById('activeChatAvatar');
-            const joinBtnContainer = document.getElementById('joinSubscribeContainer');
-            const readOnlyBanner = document.getElementById('readOnlyChannelBanner');
-            const messageInputArea = document.getElementById('messageInputArea');
+            const chat = chats.find(c => c.id === id);
+            if (!chat) return;
 
-            let targetChat = chatsDB.find(c => c.id === chatId);
-            let targetUser = usersDB.find(u => u.id === chatId);
+            // Update Header
+            document.getElementById('activeChatAvatar').innerHTML = `<img src="${chat.avatar}" class="w-full h-full object-cover">`;
+            document.getElementById('activeChatTitle').innerHTML = `${chat.name} <span class="text-xs">${chat.icon}</span>`;
+            document.getElementById('activeChatSubtitle').textContent = `@${chat.username}`;
 
-            joinBtnContainer.innerHTML = '';
-            readOnlyBanner.classList.add('hidden');
-            messageInputArea.classList.remove('hidden');
+            // Join / Subscribe Button handling
+            const container = document.getElementById('joinSubscribeContainer');
+            container.innerHTML = '';
 
-            if (targetChat) {
-                avatarEl.innerHTML = targetChat.avatar ? `<img src="${targetChat.avatar}" class="w-full h-full object-cover">` : targetChat.icon;
-                titleEl.innerHTML = `${targetChat.name} ${targetChat.type === 'channel' ? '<i class="fa-solid fa-bullhorn text-indigo-400 text-xs"></i>' : ''}`;
-
-                if (targetChat.type === 'channel') {
-                    const subCount = (targetChat.subscribers || []).length;
-                    subtitleEl.innerText = `${subCount} подписчиков`;
-
-                    const isSubscribed = (targetChat.subscribers || []).includes(currentUser.id);
-                    joinBtnContainer.innerHTML = `
-                        <button onclick="toggleSubscribeChannel('${targetChat.id}')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                            isSubscribed ? 'bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-400 border border-slate-700' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30'
-                        }">
-                            ${isSubscribed ? 'Отписаться' : 'Подписаться'}
-                        </button>
-                    `;
-
-                    // Non-owner/admin cannot post in channel
-                    if (targetChat.ownerId !== currentUser.id && !currentUser.isOwner) {
-                        messageInputArea.classList.add('hidden');
-                        readOnlyBanner.classList.remove('hidden');
-                    }
-                } else if (targetChat.type === 'group') {
-                    const memCount = (targetChat.members || []).length;
-                    subtitleEl.innerText = `${memCount} участников`;
-
-                    const isMember = (targetChat.members || []).includes(currentUser.id);
-                    joinBtnContainer.innerHTML = `
-                        <button onclick="toggleJoinGroup('${targetChat.id}')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                            isMember ? 'bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-400 border border-slate-700' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/30'
-                        }">
-                            ${isMember ? 'Покинуть группу' : 'Вступить в группу'}
-                        </button>
-                    `;
-                } else if (targetChat.type === 'bot') {
-                    subtitleEl.innerText = 'Официальный бот';
-                }
-            } else if (targetUser) {
-                avatarEl.innerHTML = `<img src="${targetUser.avatar}" class="w-full h-full object-cover">`;
-                titleEl.innerHTML = `${targetUser.name} ${targetUser.isOwner ? '👑' : ''}`;
-                subtitleEl.innerText = targetUser.statusText || 'В сети';
+            if (chat.type === 'channel') {
+                const isSubbed = chat.subscribers?.includes(currentUser.username);
+                const btn = document.createElement('button');
+                btn.className = isSubbed ? "bg-slate-800 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-700" : "bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-md shadow-indigo-600/30";
+                btn.textContent = isSubbed ? "Вы подписаны" : "Подписаться";
+                btn.onclick = () => toggleSubscription(chat.id);
+                container.appendChild(btn);
+            } else if (chat.type === 'group') {
+                const isMember = chat.members?.includes(currentUser.username);
+                const btn = document.createElement('button');
+                btn.className = isMember ? "bg-slate-800 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-700" : "bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-md shadow-emerald-600/30";
+                btn.textContent = isMember ? "В группе" : "Вступить";
+                btn.onclick = () => toggleGroupMembership(chat.id);
+                container.appendChild(btn);
             }
 
-            renderChatFeed();
-            renderRightPanel();
+            // Restrict channel posting for non-admins
+            const isChannel = chat.type === 'channel';
+            const canPost = !isChannel || currentUser.isOwner || chat.creator === currentUser.username;
+            document.getElementById('messageInputArea').style.display = canPost ? 'block' : 'none';
+            document.getElementById('readOnlyChannelBanner').style.display = canPost ? 'none' : 'block';
+
+            renderMessages();
+            renderRightPanelInfo();
         }
 
-        function toggleSubscribeChannel(channelId) {
-            const ch = chatsDB.find(c => c.id === channelId);
-            if (!ch) return;
-
-            if (!ch.subscribers) ch.subscribers = [];
-            const idx = ch.subscribers.indexOf(currentUser.id);
-
-            if (idx !== -1) {
-                ch.subscribers.splice(idx, 1);
-            } else {
-                ch.subscribers.push(currentUser.id);
-            }
-
-            saveChatsDB();
-            openChat(channelId);
-        }
-
-        function toggleJoinGroup(groupId) {
-            const grp = chatsDB.find(c => c.id === groupId);
-            if (!grp) return;
-
-            if (!grp.members) grp.members = [];
-            const idx = grp.members.indexOf(currentUser.id);
-
-            if (idx !== -1) {
-                grp.members.splice(idx, 1);
-            } else {
-                grp.members.push(currentUser.id);
-            }
-
-            saveChatsDB();
-            openChat(groupId);
-        }
-
-        /* Message Stream & Reaction Logic */
-        function renderChatFeed() {
+        function renderMessages() {
             const feed = document.getElementById('chatFeed');
             feed.innerHTML = '';
 
-            const msgs = messagesDB[activeChatId] || [];
+            const chatMsgs = messages[activeChatId] || [];
 
-            msgs.forEach(msg => {
-                const isMyMsg = msg.senderId === currentUser.id;
-                let sender = usersDB.find(u => u.id === msg.senderId);
-                if (!sender) {
-                    sender = chatsDB.find(c => c.id === msg.senderId) || { name: 'Система', avatar: '' };
+            chatMsgs.forEach(m => {
+                const isMe = m.sender === currentUser.username;
+                const senderUser = users.find(u => u.username === m.sender) || { name: m.sender, avatar: '' };
+
+                const wrapper = document.createElement('div');
+                wrapper.className = `flex items-end space-x-2 ${isMe ? 'justify-end' : 'justify-start'}`;
+
+                let contentHtml = '';
+
+                if (m.voice) {
+                    contentHtml = `
+                        <div class="flex items-center space-x-3 py-1 px-2">
+                            <button class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white"><i class="fa-solid fa-play text-xs"></i></button>
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold">Голосовое сообщение</span>
+                                <span class="text-[10px] opacity-75">${m.duration || '00:05'}</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (m.file) {
+                    contentHtml = `
+                        <div class="flex items-center space-x-2.5 p-1">
+                            <i class="fa-solid fa-file text-lg text-indigo-300"></i>
+                            <div class="truncate">
+                                <div class="text-xs font-medium underline truncate">${m.file.name}</div>
+                                <div class="text-[10px] opacity-75">${m.file.size}</div>
+                            </div>
+                        </div>
+                        ${m.text ? `<p class="mt-1.5 text-xs chat-text-selectable">${m.text}</p>` : ''}
+                    `;
+                } else {
+                    contentHtml = `<p class="text-xs chat-text-selectable leading-relaxed">${m.text}</p>`;
                 }
 
-                const msgCard = document.createElement('div');
-                msgCard.className = `flex flex-col group relative max-w-[85%] sm:max-w-[70%] ${isMyMsg ? 'ml-auto items-end' : 'mr-auto items-start'}`;
+                const canDelete = currentUser.isOwner || isMe;
 
-                // Render Unique Reactions Box
-                let reactionsHtml = '<div class="flex flex-wrap gap-1 mt-1.5">';
-                if (msg.reactions) {
-                    for (const [emoji, userList] of Object.entries(msg.reactions)) {
-                        if (userList && userList.length > 0) {
-                            const hasMyReaction = userList.includes(currentUser.id);
-                            reactionsHtml += `
-                                <button onclick="toggleSingleReaction('${msg.id}', '${emoji}')" class="px-2 py-0.5 rounded-lg text-[11px] flex items-center gap-1 border transition ${
-                                    hasMyReaction ? 'bg-indigo-900/80 border-indigo-500 text-indigo-300 font-bold' : 'bg-slate-800/80 border-slate-700 text-slate-300'
-                                }">
-                                    <span>${emoji}</span>
-                                    <span class="text-[10px]">${userList.length}</span>
-                                </button>
-                            `;
-                        }
-                    }
-                }
-                reactionsHtml += '</div>';
-
-                // Delete option
-                let deleteBtn = '';
-                if (isMyMsg || currentUser.isOwner) {
-                    deleteBtn = `<button onclick="deleteMessage('${msg.id}')" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 text-xs px-1 transition" title="Удалить"><i class="fa-solid fa-trash"></i></button>`;
-                }
-
-                msgCard.innerHTML = `
-                    <div class="flex items-center space-x-1.5 mb-1 px-1">
-                        <span class="text-[11px] font-semibold text-slate-400">${sender.name}</span>
-                        <span class="text-[10px] text-slate-500">${msg.time}</span>
-                        ${deleteBtn}
-                    </div>
-                    <div class="p-3 rounded-2xl text-xs chat-text-selectable break-words ${
-                        isMyMsg ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
-                    }">
-                        ${msg.attachmentHtml || ''}
-                        <div>${msg.text}</div>
-                    </div>
-                    ${reactionsHtml}
-
-                    <!-- Emoji Reaction Toolbar -->
-                    <div class="opacity-0 group-hover:opacity-100 transition absolute -top-3 ${isMyMsg ? 'right-0' : 'left-0'} bg-slate-900 border border-slate-700 rounded-xl px-2 py-0.5 flex items-center space-x-1.5 shadow-lg z-10">
-                        <button onclick="toggleSingleReaction('${msg.id}', '👍')" class="hover:scale-125 transition">👍</button>
-                        <button onclick="toggleSingleReaction('${msg.id}', '❤️')" class="hover:scale-125 transition">❤️</button>
-                        <button onclick="toggleSingleReaction('${msg.id}', '🔥')" class="hover:scale-125 transition">🔥</button>
+                wrapper.innerHTML = `
+                    ${!isMe ? `<img src="${senderUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80'}" class="w-7 h-7 rounded-xl object-cover shrink-0 mb-1">` : ''}
+                    <div class="relative group max-w-[75%]">
+                        <div class="p-3 rounded-2xl ${isMe ? 'bg-tg-bubbleOut text-white rounded-br-none' : 'bg-tg-bubbleIn text-slate-100 rounded-bl-none border border-slate-800'}">
+                            ${!isMe ? `<div class="text-[10px] font-bold text-indigo-400 mb-1">${senderUser.name}</div>` : ''}
+                            ${contentHtml}
+                            <div class="text-[9px] text-right mt-1 opacity-60 flex items-center justify-end gap-1">
+                                <span>${m.time}</span>
+                                ${isMe ? '<i class="fa-solid fa-check-double text-[8px]"></i>' : ''}
+                            </div>
+                        </div>
+                        ${canDelete ? `<button onclick="deleteMessage(${m.id})" class="absolute -top-2 ${isMe ? '-left-6' : '-right-6'} opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
                     </div>
                 `;
-
-                feed.appendChild(msgCard);
+                feed.appendChild(wrapper);
             });
 
             feed.scrollTop = feed.scrollHeight;
         }
 
-        /* STRICT 1-REACTION PER USER ENGINE */
-        function toggleSingleReaction(msgId, targetEmoji) {
-            const list = messagesDB[activeChatId] || [];
-            const msg = list.find(m => m.id === msgId);
-            if (!msg) return;
-
-            if (!msg.reactions) msg.reactions = {};
-
-            let wasAlreadySet = false;
-
-            // Remove current user from ALL reaction lists for this message
-            for (const [emoji, userList] of Object.entries(msg.reactions)) {
-                const index = userList.indexOf(currentUser.id);
-                if (index !== -1) {
-                    if (emoji === targetEmoji) wasAlreadySet = true;
-                    userList.splice(index, 1);
-                }
-            }
-
-            // If it wasn't already set to this emoji, add it
-            if (!wasAlreadySet) {
-                if (!msg.reactions[targetEmoji]) msg.reactions[targetEmoji] = [];
-                msg.reactions[targetEmoji].push(currentUser.id);
-            }
-
-            saveMessagesDB();
-            renderChatFeed();
-        }
-
-        /* Sending Messages & Voice Recordings */
+        // --- MESSAGE ACTIONS ---
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
 
-            if (!text && !selectedFileAttachment) return;
+            if (!text && !currentAttachment) return;
 
-            let attachmentHtml = '';
-            if (selectedFileAttachment) {
-                if (selectedFileAttachment.type.startsWith('image/')) {
-                    attachmentHtml = `<img src="${selectedFileAttachment.url}" class="rounded-xl mb-2 max-h-48 object-cover w-full">`;
-                } else {
-                    attachmentHtml = `
-                        <div class="flex items-center gap-2 bg-slate-800/80 p-2 rounded-xl mb-2">
-                            <i class="fa-solid fa-file text-indigo-400 text-lg"></i>
-                            <span class="truncate font-medium">${selectedFileAttachment.name}</span>
-                        </div>
-                    `;
-                }
-            }
+            if (!messages[activeChatId]) messages[activeChatId] = [];
 
             const newMsg = {
-                id: 'm-' + Date.now(),
-                senderId: currentUser.id,
-                text: text || '',
-                attachmentHtml: attachmentHtml,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                reactions: {}
+                id: Date.now(),
+                sender: currentUser.username,
+                text: text,
+                file: currentAttachment,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
 
-            if (!messagesDB[activeChatId]) messagesDB[activeChatId] = [];
-            messagesDB[activeChatId].push(newMsg);
-
-            saveMessagesDB();
-
+            messages[activeChatId].push(newMsg);
             input.value = '';
             clearAttachment();
-            renderChatFeed();
+            saveData();
+            renderMessages();
+            renderChatList();
+
+            // Automated Bot Echo Responses
+            if (activeChatId.startsWith('bot-')) {
+                triggerBotResponse(activeChatId, text);
+            }
+        }
+
+        function handleInputKeydown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function deleteMessage(msgId) {
+            if (!messages[activeChatId]) return;
+            messages[activeChatId] = messages[activeChatId].filter(m => m.id !== msgId);
+            saveData();
+            renderMessages();
             renderChatList();
         }
 
-        /* Interactive Voice Message Simulator */
+        function triggerBotResponse(botId, userMsg) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.style.opacity = '1';
+
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+                let replyText = "Я автоматический бот. Ваш запрос принят!";
+
+                if (botId === 'bot-verify') {
+                    replyText = "Используйте кнопку 'Получить код' на экране авторизации для генерации 2FA ключа.";
+                } else if (botId === 'bot-news') {
+                    replyText = "🚀 Последние новости: HamSocial Web запустил поддержку мобильных и десктоп верификаций!";
+                }
+
+                messages[botId].push({
+                    id: Date.now(),
+                    sender: botId,
+                    text: replyText,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+                saveData();
+                renderMessages();
+                renderChatList();
+            }, 1200);
+        }
+
+        // --- VOICE RECORDING SIMULATOR ---
         function startVoiceRecording() {
             document.getElementById('voiceRecordingBox').classList.remove('hidden');
-            voiceRecordSeconds = 0;
-            document.getElementById('voiceRecordTimer').innerText = '00:00';
-
-            voiceRecorderInterval = setInterval(() => {
-                voiceRecordSeconds++;
-                const mins = String(Math.floor(voiceRecordSeconds / 60)).padStart(2, '0');
-                const secs = String(voiceRecordSeconds % 60).padStart(2, '0');
-                document.getElementById('voiceRecordTimer').innerText = `${mins}:${secs}`;
+            voiceSeconds = 0;
+            document.getElementById('voiceRecordTimer').textContent = '00:00';
+            voiceTimerInterval = setInterval(() => {
+                voiceSeconds++;
+                const m = String(Math.floor(voiceSeconds / 60)).padStart(2, '0');
+                const s = String(voiceSeconds % 60).padStart(2, '0');
+                document.getElementById('voiceRecordTimer').textContent = `${m}:${s}`;
             }, 1000);
         }
 
         function cancelVoiceRecording() {
-            clearInterval(voiceRecorderInterval);
+            clearInterval(voiceTimerInterval);
             document.getElementById('voiceRecordingBox').classList.add('hidden');
         }
 
         function finishVoiceRecording() {
-            clearInterval(voiceRecorderInterval);
-            document.getElementById('voiceRecordingBox').classList.add('hidden');
+            const timeStr = document.getElementById('voiceRecordTimer').textContent;
+            cancelVoiceRecording();
 
-            const mins = String(Math.floor(voiceRecordSeconds / 60)).padStart(2, '0');
-            const secs = String(voiceRecordSeconds % 60).padStart(2, '0');
-            const durationStr = `${mins}:${secs}`;
-
-            const voiceId = 'v-' + Date.now();
-            const voiceHtml = `
-                <div class="flex items-center space-x-3 bg-slate-800/80 p-2.5 rounded-xl my-1 min-w-[200px]">
-                    <button onclick="togglePlayVoice('${voiceId}')" id="btn-${voiceId}" class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-play text-xs"></i>
-                    </button>
-                    <div class="flex-1">
-                        <div class="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                            <div id="bar-${voiceId}" class="h-full bg-indigo-400 w-0 transition-all duration-300"></div>
-                        </div>
-                        <div class="text-[10px] text-slate-400 mt-1 flex justify-between">
-                            <span>Голосовое сообщение</span>
-                            <span>${durationStr}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            const newMsg = {
-                id: 'm-' + Date.now(),
-                senderId: currentUser.id,
-                text: '',
-                attachmentHtml: voiceHtml,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                reactions: {}
-            };
-
-            if (!messagesDB[activeChatId]) messagesDB[activeChatId] = [];
-            messagesDB[activeChatId].push(newMsg);
-
-            saveMessagesDB();
-            renderChatFeed();
+            if (!messages[activeChatId]) messages[activeChatId] = [];
+            messages[activeChatId].push({
+                id: Date.now(),
+                sender: currentUser.username,
+                voice: true,
+                duration: timeStr,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            saveData();
+            renderMessages();
             renderChatList();
         }
 
-        function togglePlayVoice(voiceId) {
-            const btn = document.getElementById('btn-' + voiceId);
-            const bar = document.getElementById('bar-' + voiceId);
-
-            if (!btn || !bar) return;
-
-            const icon = btn.querySelector('i');
-            if (icon.classList.contains('fa-play')) {
-                icon.className = 'fa-solid fa-pause text-xs';
-                bar.style.width = '100%';
-                setTimeout(() => {
-                    icon.className = 'fa-solid fa-play text-xs';
-                    bar.style.width = '0%';
-                }, 3000);
-            } else {
-                icon.className = 'fa-solid fa-play text-xs';
-                bar.style.width = '0%';
-            }
-        }
-
-        /* File Attachment Handlers */
+        // --- FILE ATTACHMENT SIMULATOR ---
         function handleFileSelect(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            selectedFileAttachment = {
+            currentAttachment = {
                 name: file.name,
-                type: file.type,
-                url: URL.createObjectURL(file)
+                size: (file.size / 1024).toFixed(1) + ' KB'
             };
 
-            document.getElementById('attachmentFileName').innerText = file.name;
+            document.getElementById('attachmentFileName').textContent = `${currentAttachment.name} (${currentAttachment.size})`;
             document.getElementById('attachmentPreview').classList.remove('hidden');
         }
 
         function clearAttachment() {
-            selectedFileAttachment = null;
+            currentAttachment = null;
             document.getElementById('fileUploadInput').value = '';
             document.getElementById('attachmentPreview').classList.add('hidden');
         }
 
-        function deleteMessage(msgId) {
-            messagesDB[activeChatId] = (messagesDB[activeChatId] || []).filter(m => m.id !== msgId);
-            saveMessagesDB();
-            renderChatFeed();
+        // --- EMOJI PICKER ---
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            picker.classList.toggle('hidden');
         }
 
-        /* Community Creation & Owner Panel Engine */
+        function insertEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            input.value += emoji;
+            toggleEmojiPicker();
+            input.focus();
+        }
+
+        // --- COMMUNITY MANAGEMENT ---
         function toggleCreateCommunityModal(show) {
             document.getElementById('createCommunityModal').classList.toggle('hidden', !show);
         }
@@ -1139,148 +530,180 @@
             const desc = document.getElementById('newDesc').value.trim();
             const icon = document.getElementById('newIcon').value.trim() || '🚀';
 
-            if (!name) return;
+            if (!name) {
+                alert('Введите название!');
+                return;
+            }
 
-            const newId = (type === 'channel' ? 'channel-' : 'group-') + Date.now();
+            const newId = `${type}-${Date.now()}`;
             const newCommunity = {
                 id: newId,
                 type: type,
                 name: name,
                 username: name.toLowerCase().replace(/\s+/g, '_'),
                 icon: icon,
+                avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80',
                 desc: desc,
-                ownerId: currentUser.id,
-                subscribers: type === 'channel' ? [currentUser.id] : [],
-                members: type === 'group' ? [currentUser.id] : []
+                creator: currentUser.username,
+                members: type === 'group' ? [currentUser.username] : [],
+                subscribers: type === 'channel' ? [currentUser.username] : []
             };
 
-            chatsDB.push(newCommunity);
-            saveChatsDB();
+            chats.push(newCommunity);
+            messages[newId] = [
+                { id: Date.now(), sender: currentUser.username, text: `Сообщество "${name}" было успешно создано.`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+            ];
 
+            saveData();
             toggleCreateCommunityModal(false);
-            openChat(newId);
+            selectChat(newId);
         }
 
-        function toggleAdminPanel(show) {
-            const modal = document.getElementById('adminModal');
-            if (show) {
-                modal.classList.remove('hidden');
-                renderAdminUsers();
+        function toggleSubscription(channelId) {
+            const channel = chats.find(c => c.id === channelId);
+            if (!channel) return;
+            if (!channel.subscribers) channel.subscribers = [];
+
+            const idx = channel.subscribers.indexOf(currentUser.username);
+            if (idx > -1) {
+                channel.subscribers.splice(idx, 1);
             } else {
-                modal.classList.add('hidden');
+                channel.subscribers.push(currentUser.username);
             }
+            saveData();
+            selectChat(channelId);
         }
 
-        function renderAdminUsers() {
-            const container = document.getElementById('adminUserList');
-            container.innerHTML = '';
+        function toggleGroupMembership(groupId) {
+            const group = chats.find(c => c.id === groupId);
+            if (!group) return;
+            if (!group.members) group.members = [];
 
-            usersDB.forEach(u => {
-                const row = document.createElement('div');
-                row.className = 'flex items-center justify-between p-2.5 bg-slate-800 rounded-xl';
-                row.innerHTML = `
-                    <div class="flex items-center space-x-2.5">
-                        <img src="${u.avatar}" class="w-7 h-7 rounded-lg object-cover">
-                        <span class="text-white font-medium">${u.name} (@${u.username}) ${u.isOwner ? '👑' : ''}</span>
-                    </div>
-                    ${!u.isOwner ? `<button onclick="adminBanUser('${u.id}')" class="text-rose-400 hover:text-rose-300 font-bold">Забанить</button>` : '<span class="text-amber-400">Владелец</span>'}
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function adminBanUser(userId) {
-            usersDB = usersDB.filter(u => u.id !== userId);
-            localStorage.setItem('hamsocial_users_db', JSON.stringify(usersDB));
-            renderAdminUsers();
-            renderChatList();
-        }
-
-        function adminClearCurrentChat() {
-            messagesDB[activeChatId] = [];
-            saveMessagesDB();
-            renderChatFeed();
-            toggleAdminPanel(false);
-        }
-
-        /* Profile Settings & Modals */
-        function toggleSettingsModal(show) {
-            const modal = document.getElementById('settingsModal');
-            if (show) {
-                document.getElementById('settingsName').value = currentUser.name;
-                document.getElementById('settingsAvatar').value = currentUser.avatar;
-                modal.classList.remove('hidden');
+            const idx = group.members.indexOf(currentUser.username);
+            if (idx > -1) {
+                group.members.splice(idx, 1);
             } else {
-                modal.classList.add('hidden');
+                group.members.push(currentUser.username);
             }
+            saveData();
+            selectChat(groupId);
         }
 
-        function saveProfileSettings() {
-            currentUser.name = document.getElementById('settingsName').value.trim();
-            currentUser.avatar = document.getElementById('settingsAvatar').value.trim();
-            saveUserSession();
-            updateProfileBar();
-            renderChatFeed();
-            toggleSettingsModal(false);
-        }
-
-        function renderRightPanel() {
-            const container = document.getElementById('membersList');
-            container.innerHTML = '';
-
-            let targetChat = chatsDB.find(c => c.id === activeChatId);
-
-            document.getElementById('infoPanelName').innerText = targetChat ? targetChat.name : 'Диалог';
-            document.getElementById('infoPanelMeta').innerText = targetChat ? `@${targetChat.username}` : '';
-            document.getElementById('infoPanelDesc').innerText = targetChat ? (targetChat.desc || 'Описание отсутствует.') : 'Личная переписка.';
-
-            usersDB.forEach(u => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center space-x-2.5 p-1.5 rounded-xl hover:bg-slate-800 transition';
-                item.innerHTML = `
-                    <img src="${u.avatar}" class="w-7 h-7 rounded-lg object-cover">
-                    <div class="min-w-0">
-                        <div class="text-xs font-semibold text-slate-200 truncate">${u.name} ${u.isOwner ? '👑' : ''}</div>
-                        <div class="text-[10px] text-slate-400 truncate">${u.statusText || 'В сети'}</div>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
+        // --- RIGHT PANEL & MEMBERS INFO ---
         function toggleRightPanel() {
             document.getElementById('rightPanel').classList.toggle('hidden');
         }
 
-        function handleInputKeydown(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
+        function renderRightPanelInfo() {
+            const chat = chats.find(c => c.id === activeChatId);
+            if (!chat) return;
+
+            document.getElementById('infoPanelAvatar').innerHTML = `<img src="${chat.avatar}" class="w-full h-full object-cover">`;
+            document.getElementById('infoPanelName').textContent = chat.name;
+            document.getElementById('infoPanelMeta').textContent = `@${chat.username}`;
+            document.getElementById('infoPanelDesc').textContent = chat.desc || 'Описание отсутствует.';
+
+            const membersList = document.getElementById('membersList');
+            membersList.innerHTML = '';
+
+            if (chat.type === 'group') {
+                (chat.members || []).forEach(username => {
+                    const u = users.find(x => x.username === username) || { name: username, avatar: '' };
+                    const div = document.createElement('div');
+                    div.className = "flex items-center space-x-2.5 p-1.5 rounded-xl hover:bg-slate-800/50";
+                    div.innerHTML = `
+                        <img src="${u.avatar}" class="w-7 h-7 rounded-lg object-cover">
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-semibold text-slate-200 truncate">${u.name}</div>
+                            <div class="text-[10px] text-slate-400 truncate">@${u.username}</div>
+                        </div>
+                    `;
+                    membersList.appendChild(div);
+                });
+            } else {
+                membersList.innerHTML = `<p class="text-xs text-slate-400 italic">Подписчиков: ${(chat.subscribers || []).length}</p>`;
             }
         }
 
-        function toggleEmojiPicker() {
-            document.getElementById('emojiPicker').classList.toggle('hidden');
+        function openActiveChatInfo() {
+            document.getElementById('rightPanel').classList.remove('hidden');
         }
 
-        function insertEmoji(emoji) {
-            const input = document.getElementById('messageInput');
-            input.value += emoji;
-            toggleEmojiPicker();
-            input.focus();
+        // --- OWNER ADMIN PANEL ---
+        function toggleAdminPanel(show) {
+            document.getElementById('adminModal').classList.toggle('hidden', !show);
+            if (show) renderAdminUserList();
+        }
+
+        function renderAdminUserList() {
+            const container = document.getElementById('adminUserList');
+            container.innerHTML = '';
+
+            users.forEach(u => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2.5 bg-slate-800/60 rounded-xl border border-slate-700/50";
+                div.innerHTML = `
+                    <div class="flex items-center space-x-2.5">
+                        <img src="${u.avatar}" class="w-8 h-8 rounded-lg object-cover">
+                        <div>
+                            <div class="font-bold text-slate-200">${u.name} ${u.isOwner ? '👑' : ''}</div>
+                            <div class="text-[10px] text-slate-400">@${u.username}</div>
+                        </div>
+                    </div>
+                    ${!u.isOwner ? `<button onclick="adminDeleteUser('${u.username}')" class="text-rose-400 hover:text-rose-300 text-xs px-2 py-1 rounded bg-rose-950/40 border border-rose-800/40">Удалить</button>` : '<span class="text-[10px] text-amber-400">Владелец</span>'}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function adminDeleteUser(username) {
+            if (!confirm(`Удалить пользователя @${username}?`)) return;
+            users = users.filter(u => u.username !== username);
+            chats = chats.filter(c => c.id !== `user-${username}`);
+            saveData();
+            renderAdminUserList();
+            renderChatList();
+        }
+
+        function adminClearCurrentChat() {
+            if (!confirm('Вы уверены, что хотите очистить всю историю текущего чата?')) return;
+            messages[activeChatId] = [];
+            saveData();
+            renderMessages();
+            renderChatList();
+            toggleAdminPanel(false);
+        }
+
+        // --- SETTINGS MODAL ---
+        function toggleSettingsModal(show) {
+            document.getElementById('settingsModal').classList.toggle('hidden', !show);
+            if (show && currentUser) {
+                document.getElementById('settingsName').value = currentUser.name;
+                document.getElementById('settingsAvatar').value = currentUser.avatar;
+            }
+        }
+
+        function saveProfileSettings() {
+            const newName = document.getElementById('settingsName').value.trim();
+            const newAvatar = document.getElementById('settingsAvatar').value.trim();
+
+            if (newName) currentUser.name = newName;
+            if (newAvatar) currentUser.avatar = newAvatar;
+
+            const uIdx = users.findIndex(u => u.username === currentUser.username);
+            if (uIdx > -1) users[uIdx] = currentUser;
+
+            saveData();
+            toggleSettingsModal(false);
+            initApp();
         }
 
         function toggleTheme() {
             document.documentElement.classList.toggle('dark');
         }
 
-        function saveMessagesDB() {
-            localStorage.setItem('hamsocial_messages_db', JSON.stringify(messagesDB));
-        }
-
-        function saveChatsDB() {
-            localStorage.setItem('hamsocial_chats_db', JSON.stringify(chatsDB));
-        }
+        // Start application on load
+        window.onload = initApp;
     </script>
 </body>
 </html>
